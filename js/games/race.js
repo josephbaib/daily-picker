@@ -54,7 +54,7 @@ export default {
       const t = Math.min(1, (now - start) / 1000 / dur);
       const time = (now - start) / 1000;
       const w = canvas.width, h = canvas.height;
-      const scale = n <= 8 ? Math.max(3, Math.min(5, Math.floor(h / 200))) : Math.max(2, Math.min(4, Math.floor(h / 260)));
+      const scale = n <= 8 ? Math.max(2, Math.min(4, Math.floor(h / 250))) : Math.max(2, Math.min(3, Math.floor(h / 330)));
       const sprH = SPRITE_H * scale, sprW = SPRITE_W * scale;
       const horizon = Math.round(h * 0.42);
       const trackTop = Math.round(h * 0.55), trackBottom = h - 24;

@@ -12,13 +12,14 @@ const TOP_COLORS = ['#3c5aa0', '#d24a6a', '#f0f0f0', '#8a4fd0', '#404050', '#2bd
 const PANTS_COLORS = ['#26304a', '#3a3a4a', '#2f2f3a', '#2a3a5a', '#1e1e28', '#5a3278', '#6b3a2a', '#c8c8c8'];
 const SHOES_COLORS = ['#f2f2f2', '#2a2a2a', '#6b3a2a', '#c8c8c8', '#dc3c3c'];
 const HATS = ['none', 'none', 'none', 'none', 'none', 'cap', 'beanie'];
-const GLASSES = ['none', 'none', 'none', 'round', 'square'];
+const GLASSES = ['none', 'none', 'none', 'round', 'square', 'sun'];
 const BEARDS = ['none', 'none', 'none', 'stubble', 'moustache', 'goatee', 'beard'];
 
 // Персонаж по имени: из состава команды, иначе случайный из частей по хэшу имени.
 export function personFor(name) {
   const key = name.trim();
-  const fixed = ROSTER[key] || ROSTER[key.toLowerCase()];
+  const rosterKey = Object.keys(ROSTER).find((k) => k.toLowerCase() === key.toLowerCase());
+  const fixed = rosterKey ? ROSTER[rosterKey] : null;
   const rnd = mulberry32(hashString(key.toLowerCase()) ^ 0x5a5a);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
   const hairs = Object.keys(DATA.HAIR);
@@ -28,7 +29,8 @@ export function personFor(name) {
     top: pick(Object.keys(DATA.TOP)), topColor: pick(TOP_COLORS), accent: '#ffffff',
     pantsColor: pick(PANTS_COLORS), shoesColor: pick(SHOES_COLORS),
   };
-  if (base.top === 'dress' && rnd() < 0.5) base.top = 'tshirt';
+  if ((base.top === 'dress' || base.top === 'tank') && rnd() < 0.5) base.top = 'tshirt';
+  if (base.hair === 'naruto') base.hair = 'spiky';
   return { ...base, ...(fixed || {}) };
 }
 
@@ -39,14 +41,16 @@ const lighten = (c, k) => c.map((v) => Math.min(255, Math.floor(v + (255 - v) * 
 
 function palette(p) {
   const skin = hex(p.skin), hair = hex(p.hairColor), top = hex(p.topColor), pants = hex(p.pantsColor), shoes = hex(p.shoesColor);
-  const accent = hex(p.accent || '#ffffff'), hat = hex(p.hatColor || '#333344'), beard = hex(p.beardColor || p.hairColor);
+  const accent = hex(p.accent || '#ffffff'), accent2 = hex(p.accent2 || p.accent || '#ffffff');
+  const hat = hex(p.hatColor || '#333344'), beard = hex(p.beardColor || p.hairColor), lips = hex(p.lipColor || '#d83a4a');
   return {
-    '#': rgb([26, 20, 40]), s: rgb(skin), S: rgb(darken(skin, 0.78)), $: rgb(lighten(skin, 0.25)),
-    e: rgb([30, 24, 40]), m: rgb(darken(skin, 0.6)),
-    t: rgb(top), T: rgb(darken(top, 0.72)), '+': rgb(lighten(top, 0.28)), a: rgb(accent),
+    '#': rgb([24, 18, 36]), s: rgb(skin), S: rgb(darken(skin, 0.8)), $: rgb(lighten(skin, 0.3)),
+    n: rgb(darken(p.hair === 'bald' ? skin : hair, 0.55)),
+    w: rgb([250, 250, 255]), e: rgb([34, 28, 48]), E: rgb([150, 170, 220]), m: rgb(darken(skin, 0.6)), l: rgb(lips), r: rgb([240, 150, 140]),
+    t: rgb(top), T: rgb(darken(top, 0.72)), '+': rgb(lighten(top, 0.3)), a: rgb(accent), x: rgb(accent2),
     p: rgb(pants), P: rgb(darken(pants, 0.7)), b: rgb(shoes), B: rgb(darken(shoes, 0.65)),
-    h: rgb(hair), H: rgb(darken(hair, 0.7)), f: rgb(beard), g: rgb([40, 36, 60]),
-    c: rgb(hat), C: rgb(darken(hat, 0.72)),
+    h: rgb(hair), H: rgb(darken(hair, 0.68)), i: rgb(lighten(hair, 0.35)), f: rgb(beard),
+    g: rgb([44, 40, 60]), G: rgb([30, 28, 42]), k: rgb([240, 200, 90]), c: rgb(hat), C: rgb(darken(hat, 0.72)),
   };
 }
 
@@ -65,10 +69,14 @@ export function composeGrid(p, frame) {
       }
     });
   };
-  if (!side) blit(DATA.TOP[p.top] || [], 13);
-  blit(DATA.BEARD[p.beard] || [], 1 + DATA.BEARD_Y[p.beard] + dy, side ? 2 : 0);
-  blit(DATA.GLASSES[p.glasses] || [], 1 + DATA.GLASSES_Y + dy, side ? 2 : 0);
-  blit(DATA.HAIR[p.hair] || [], 1 + dy, side ? 1 : 0);
+  if (!side) {
+    blit(DATA.TOP[p.top] || [], 18);
+    (p.acc || []).forEach((name) => { const a = DATA.ACC[name]; if (a) blit(a.grid, a.y); });
+  }
+  const sx = side ? 3 : 0;
+  blit(DATA.BEARD[p.beard] || [], DATA.BEARD_Y[p.beard] + dy, sx);
+  blit(DATA.GLASSES[p.glasses] || [], DATA.GLASSES_Y + dy, sx);
+  blit(DATA.HAIR[p.hair] || [], dy, side ? 1 : 0);
   if (p.hat !== 'none') blit(DATA.HAT[p.hat] || [], dy, side ? 1 : 0);
   return rows;
 }
@@ -105,8 +113,8 @@ export function portraitCanvas(p, scale = 4) {
   if (cache.has(key)) return cache.get(key);
   const full = spriteCanvas(p, 'idle', scale);
   const c = document.createElement('canvas');
-  c.width = SPRITE_W * scale; c.height = 17 * scale;
-  c.getContext('2d').drawImage(full, 0, 0, full.width, 17 * scale, 0, 0, full.width, 17 * scale);
+  c.width = SPRITE_W * scale; c.height = 21 * scale;
+  c.getContext('2d').drawImage(full, 0, 0, full.width, 21 * scale, 0, 0, full.width, 21 * scale);
   cache.set(key, c);
   return c;
 }

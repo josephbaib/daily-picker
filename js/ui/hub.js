@@ -85,7 +85,8 @@ export function mountGameTiles(root, games, { onSelect }) {
   function select(id) {
     selected = id;
     tiles.forEach((t, k) => t.tile.classList.toggle('selected', k === id));
-    onSelect(id, false);
+    const g = tiles.get(id) && tiles.get(id).g;
+    onSelect(id, false, g);
   }
 
   function loop(now) {

@@ -22,20 +22,20 @@ function drawChair(ctx, x, y, scale, color = '#2a2a34') {
 
 function drawRider(ctx, person, x, y, scale, kick, tilt) {
   // персонаж сидит: верх тела из спрайта, ноги рисуем отдельно и они толкаются
-  const src = spriteCanvas(person, 'run0', scale);
-  const bodyRows = 23;
+  const src = spriteCanvas(person, 'run1', scale);
+  const bodyRows = 30;
   ctx.save();
   ctx.translate(x + 6 * scale, y);
   ctx.rotate(tilt);
-  drawChair(ctx, 0, 0, scale);
-  ctx.drawImage(src, 0, 0, SPRITE_W * scale, bodyRows * scale, -2 * scale, -bodyRows * scale + 2 * scale, SPRITE_W * scale, bodyRows * scale);
+  drawChair(ctx, 0, 0, scale * 1.4);
+  ctx.drawImage(src, 0, 0, SPRITE_W * scale, bodyRows * scale, -4 * scale, -bodyRows * scale + 2 * scale, SPRITE_W * scale, bodyRows * scale);
   // ноги: бедро вперёд, голень вниз, толчок
   const k = Math.sin(kick);
   ctx.fillStyle = person.pantsColor;
-  ctx.fillRect(9 * scale, -1 * scale, (6 + k * 3) * scale, 3 * scale);
-  ctx.fillRect((13 + k * 3) * scale, 1 * scale, 3 * scale, (5 + Math.max(0, -k) * 2) * scale);
+  ctx.fillRect(12 * scale, -1 * scale, (8 + k * 4) * scale, 4 * scale);
+  ctx.fillRect((17 + k * 4) * scale, 2 * scale, 4 * scale, (7 + Math.max(0, -k) * 3) * scale);
   ctx.fillStyle = person.shoesColor;
-  ctx.fillRect((13 + k * 3) * scale, (6 + Math.max(0, -k) * 2) * scale, 5 * scale, 2 * scale);
+  ctx.fillRect((17 + k * 4) * scale, (9 + Math.max(0, -k) * 3) * scale, 6 * scale, 3 * scale);
   ctx.restore();
 }
 
@@ -122,9 +122,9 @@ export default {
       const time = (now - start) / 1000;
       const t = Math.min(1, time / dur);
       const w = canvas.width, h = canvas.height;
-      const scale = n <= 8 ? Math.max(3, Math.min(5, Math.floor(h / 210))) : Math.max(2, Math.min(4, Math.floor(h / 280)));
+      const scale = n <= 8 ? Math.max(2, Math.min(4, Math.floor(h / 260))) : Math.max(2, Math.min(3, Math.floor(h / 330)));
       const floorY = Math.round(h * 0.52);
-      const rowH = (h - floorY - 20 * scale) / Math.max(1, rows);
+      const rowH = (h - floorY - 26 * scale) / Math.max(1, rows);
       const startX = 100, L = w * 2.6, finishX = startX + L;
       const ps = riders.map((r) => progress(r, t));
       const leader = Math.max(...ps);
@@ -159,10 +159,10 @@ export default {
         const speed = t < 1 ? 1 : 0;
         const spinning = time > r.spinAt && time < r.spinAt + 0.7 && t < 0.9;
         const tilt = spinning ? ((time - r.spinAt) / 0.7) * Math.PI * 2 : Math.sin(time * 8 + r.kick) * 0.03 * speed;
-        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x, y + 11 * scale, 16 * scale, scale);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x, y + 15 * scale, 22 * scale, scale);
         drawRider(ctx, r.p.person, x, y, scale, time * 12 * (0.7 + r.f * 0.3) + r.kick, tilt);
         const first = t >= 1 && r.rank === 0;
-        label(ctx, r.p.name, x + 8 * scale, y - 26 * scale, scale >= 4 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
+        label(ctx, r.p.name, x + 10 * scale, y - 33 * scale, scale >= 4 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
 
       if (doorOpened === null && leader >= 0.975) { doorOpened = time; if (onEvent) onEvent('pop'); particles.burst(fx + 40, floorY * 0.5, time, rnd, { count: 50, speed: 240, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#ffffff'], life: 1.4 }); }

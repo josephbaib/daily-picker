@@ -14,8 +14,8 @@ test('разные имена дают разных персонажей', () =>
 test('все кадры собираются в сетку 24×32 без неизвестных символов', () => {
   const p = personFor('Тест');
   for (const f of FRAMES) {
-    const g = composeGrid({ ...p, hair: 'long', beard: 'beard', glasses: 'round', hat: 'cap', top: 'hoodie' }, f);
+    const g = composeGrid({ ...p, hair: 'long', beard: 'beard', glasses: 'round', hat: 'cap', top: 'hoodie', acc: ['necklace', 'watch'] }, f);
     assert.equal(g.length, SPRITE_H);
-    g.forEach((r) => { assert.equal(r.length, SPRITE_W); r.forEach((ch) => assert.ok('.#sS$emtT+apPbBhHfgcC'.includes(ch), ch)); });
+    g.forEach((r) => { assert.equal(r.length, SPRITE_W); r.forEach((ch) => assert.ok('.#sS$nweEmlrtT+axpPbBhHifgGkcC'.includes(ch), ch)); });
   }
 });

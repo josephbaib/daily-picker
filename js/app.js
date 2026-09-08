@@ -16,6 +16,19 @@ function toast(text, ms = 4000) {
   clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, ms);
 }
 
+// Плывущие кубы на фоне, как в меню приставки.
+(function cubes() {
+  const fx = $('#fx');
+  for (let i = 0; i < 26; i++) {
+    const c = document.createElement('div');
+    c.className = 'cube';
+    const size = 14 + Math.random() * 40;
+    c.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${18 + Math.random() * 26}s;animation-delay:${-Math.random() * 40}s;opacity:0`;
+    fx.append(c);
+  }
+  for (let i = 0; i < 3; i++) { const st = document.createElement('div'); st.className = 'streak'; st.style.cssText = `top:${30 + i * 20}%;animation-delay:${-i * 3}s`; fx.append(st); }
+})();
+
 function show(screen) {
   ['room-form', 'hub', 'game', 'result'].forEach((id) => { $('#' + id).hidden = id !== screen; });
   document.body.dataset.screen = screen;
@@ -58,7 +71,11 @@ async function boot() {
     },
   });
   const tiles = mountGameTiles($('#game-tiles'), [...GAMES, { id: 'random', title: 'Случайная', description: 'Игра выбирается сама, каждый день по-разному.', preview: randomPreview }], {
-    onSelect: (id, go) => { localStorage.setItem('dp:game', id); if (go) start(); },
+    onSelect: (id, go, g) => {
+      localStorage.setItem('dp:game', id);
+      if (g) $('#game-desc').textContent = (g.description || '') + (g.duration ? ` Около ${g.duration} секунд.` : '');
+      if (go) start();
+    },
   });
   if (localStorage.getItem('dp:game')) tiles.select(localStorage.getItem('dp:game'));
   const result = mountResult($('#result'), {

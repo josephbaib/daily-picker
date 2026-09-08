@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Дейлик: кто говорит</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400&family=Press+Start+2P&display=swap">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+  <div id="fx"></div>
   <div id="room-form" class="screen" hidden>
     <form>
       <h1>Дейлик: кто говорит</h1>
@@ -27,17 +28,17 @@
       </div>
     </header>
     <div class="hub-body">
-      <section class="team">
-        <h2>Команда <span id="count" class="sub"></span></h2>
-        <div id="team-grid" class="team-grid"></div>
-      </section>
       <section class="games">
-        <h2>Игра <span class="sub">стрелки и Enter тоже работают</span></h2>
         <div id="game-tiles" class="game-tiles"></div>
+        <div id="game-desc"></div>
         <div class="play-row">
           <button id="start" class="play">Играть</button>
           <div id="memo" class="memo"></div>
         </div>
+      </section>
+      <section class="team">
+        <h2>Команда <span id="count" class="sub"></span><span class="sub">клик по карточке: тут или нет</span></h2>
+        <div id="team-grid" class="team-grid"></div>
       </section>
     </div>
   </div>

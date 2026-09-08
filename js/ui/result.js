@@ -1,4 +1,4 @@
-import { spriteCanvas, portraitCanvas } from '../sprite.js';
+import { spriteCanvas, portraitCanvas } from '../sprite.js?v=ca3d9c3-2332';
 
 // Экран результата: первый крупно, порядок остальных, конфетти, кнопки «Ещё раз» и «В меню».
 export function mountResult(root, { onAgain, onMenu }) {

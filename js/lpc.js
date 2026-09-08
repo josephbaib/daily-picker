@@ -1,3 +1,4 @@
+import { VERSION } from './version.js?v=ca3d9c3-2332';
 // Персонажи из набора Universal LPC: слои-листы 64×64 накладываются по zPos.
 // Кадры берём из стандартной части листа: ходьба (ряды 8–11), «руки вверх» (ряд 2), падение (ряд 20).
 const BASE = 'assets/lpc/';
@@ -11,7 +12,7 @@ function loadImage(path) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => { console.warn('нет слоя', path); resolve(null); };
-    img.src = BASE + path;
+    img.src = BASE + path + '?v=' + VERSION;
   });
   images.set(path, p);
   return p;

@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js';
-import { computeOrder } from './order.js';
-import { randomSeed } from './rng.js';
-import { GAMES, gameById, pickGame } from './games/index.js';
-import { sound } from './sound.js';
-import { mountTeam, mountGameTiles } from './ui/hub.js';
-import { mountResult } from './ui/result.js';
-import * as db from './db.js';
-import { NPCS } from './games/scene.js';
+import { personFor, preload } from './sprite.js?v=ca3d9c3-2332';
+import { computeOrder } from './order.js?v=ca3d9c3-2332';
+import { randomSeed } from './rng.js?v=ca3d9c3-2332';
+import { GAMES, gameById, pickGame } from './games/index.js?v=ca3d9c3-2332';
+import { sound } from './sound.js?v=ca3d9c3-2332';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=ca3d9c3-2332';
+import { mountResult } from './ui/result.js?v=ca3d9c3-2332';
+import * as db from './db.js?v=ca3d9c3-2332';
+import { NPCS } from './games/scene.js?v=ca3d9c3-2332';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');

@@ -1,6 +1,6 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js';
-import { mulberry32 } from '../rng.js';
-import { label, makeParticles, drawDesk, drawPlant } from './scene.js';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=ca3d9c3-2332';
+import { mulberry32 } from '../rng.js?v=ca3d9c3-2332';
+import { label, makeParticles, drawDesk, drawPlant } from './scene.js?v=ca3d9c3-2332';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами

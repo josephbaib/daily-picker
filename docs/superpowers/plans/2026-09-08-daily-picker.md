@@ -108,7 +108,7 @@ curl -s -o /dev/null -w "%{http_code}\n" "https://ubpqamnjxanvxfqprlib.supabase.
 
 Ожидается `200`. Если `404`, открыть Supabase → SQL Editor, вставить содержимое `supabase/migrations/20260908170000_init.sql`, нажать Run, повторить проверку.
 
-- [ ] **Step 2: GitHub Pages.** Включить публикацию из `main`, корень `/`:
+- [x] **Step 2: GitHub Pages.** Включить публикацию из `main`, корень `/`:
 
 ```bash
 gh api repos/josephbaib/daily-picker/pages -X POST -f "source[branch]=main" -f "source[path]=/"

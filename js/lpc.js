@@ -86,6 +86,7 @@ export function frameRect(name) {
   else if (name === 'back') { row = ROWS.up; col = 0; }
   else if (name === 'cheer') { row = ROWS.down; col = 0; }
   else if (name === 'cheer2') { row = ROWS.down; col = 4; }
+  else if (name.startsWith('slashl')) { row = ROWS.slashLeft; col = Math.min(5, parseInt(name.slice(6), 10) || 0); }
   else if (name.startsWith('slash')) { row = ROWS.slashRight; col = Math.min(5, parseInt(name.slice(5), 10) || 0); }
   else if (name.startsWith('hurt')) { row = ROWS.hurt; col = Math.min(5, parseInt(name.slice(4), 10) || 0); }
   return { sx: col * CELL, sy: row * CELL, w: CELL, h: CELL };

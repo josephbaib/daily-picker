@@ -17,7 +17,7 @@ export function mountTeam(root, { onChange }) {
       cv.width = src.width; cv.height = src.height;
       cv.getContext('2d').drawImage(src, 0, 0);
       const name = document.createElement('div'); name.className = 'tname'; name.textContent = p.name;
-      const state = document.createElement('div'); state.className = 'tstate'; state.textContent = p.present === false ? 'сегодня нет' : 'тут';
+      const state = document.createElement('div'); state.className = 'tstate'; state.textContent = p.present === false ? 'нет' : 'тут';
       const btns = document.createElement('div'); btns.className = 'tbtns';
       const ren = document.createElement('button'); ren.textContent = '✎'; ren.title = 'Переименовать';
       const del = document.createElement('button'); del.textContent = '✕'; del.title = 'Удалить';
@@ -29,10 +29,10 @@ export function mountTeam(root, { onChange }) {
       root.append(tile);
     });
     const add = document.createElement('div');
-    add.className = 'tile add'; add.textContent = '+ Добавить';
+    add.className = 'tile add'; add.textContent = 'Добавить';
     add.onclick = () => {
       if (add.querySelector('input')) return;
-      add.textContent = '';
+      add.textContent = ''; add.classList.add('editing');
       const input = document.createElement('input'); input.placeholder = 'Имя'; input.maxLength = 20;
       add.append(input); input.focus();
       const done = () => {

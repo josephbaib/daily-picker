@@ -48,6 +48,9 @@ function toast(text, ms = 4000) {
     const grd = ctx.createRadialGradient(w * 0.5, h * 1.1, 10, w * 0.5, h * 1.1, h * 0.9);
     grd.addColorStop(0, 'rgba(40,60,140,0.35)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+    // тонкая световая полоса проходит по экрану раз в несколько секунд
+    const sweep = (now / 1000) % 7;
+    if (sweep < 1.6) { const sy = h * (0.15 + 0.7 * (sweep / 1.6)); const sg = ctx.createLinearGradient(0, 0, w, 0); sg.addColorStop(0, 'rgba(180,200,255,0)'); sg.addColorStop(0.5, 'rgba(200,215,255,0.5)'); sg.addColorStop(1, 'rgba(180,200,255,0)'); ctx.fillStyle = sg; ctx.fillRect(0, sy, w, 1); }
     cubes.forEach((c) => {
       c.y -= c.v * dt; c.r += c.w * dt;
       if (c.y < -0.15) { c.y = 1.15; c.x = Math.random(); }
@@ -60,6 +63,15 @@ function toast(text, ms = 4000) {
   }
   requestAnimationFrame(tick);
 })();
+
+// Затемнение на полсекунды между экранами.
+function fadeTo(fn) {
+  const f = $('#fade');
+  return new Promise((resolve) => {
+    f.classList.add('on');
+    setTimeout(() => { fn(); setTimeout(() => { f.classList.remove('on'); resolve(); }, 60); }, 500);
+  });
+}
 
 function show(screen) {
   ['room-form', 'hub', 'game', 'result'].forEach((id) => { $('#' + id).hidden = id !== screen; });
@@ -196,8 +208,8 @@ async function boot() {
     if (!game || ordered.length < 1) { setState('idle'); return; }
     const memo = lastFirstName(payload.orderIds);
     await preload(ordered.map((p) => p.person));
-    show('game'); fit();
-    await new Promise((r) => requestAnimationFrame(r)); fit();
+    await fadeTo(() => { show('game'); fit(); });
+    await new Promise((r) => setTimeout(r, 50)); fit();
     $('#hud-title').textContent = game.title;
     setState('countdown');
     await countdown(payload.startAt, true);
@@ -215,8 +227,7 @@ async function boot() {
         await new Promise((r) => setTimeout(r, 900));
         sound.fanfare();
         setState('reveal');
-        show('result');
-        result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : '');
+        await fadeTo(() => { show('result'); result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : ''); });
     };
     running = game.play({
       canvas, participants: ordered, order: payload.orderIds, seed: payload.seed,

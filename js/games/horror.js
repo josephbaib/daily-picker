@@ -56,11 +56,25 @@ function drawHall(ctx, w, h, floorY, t, lightning, dim) {
   const rx = ((t * 90) % (w + 60)) - 30;
   ctx.fillStyle = '#2a2230'; ctx.fillRect(rx, floorY - 8, 14, 6); ctx.fillRect(rx - 8, floorY - 5, 8, 2); ctx.fillRect(rx + 12, floorY - 10, 5, 4);
   if (lightning) { ctx.fillStyle = '#0a0610'; for (let b = 0; b < 6; b++) { const bx = (b * 173 + t * 500) % w, by = floorY * (0.1 + (b % 3) * 0.1); ctx.fillRect(bx, by, 6, 3); ctx.fillRect(bx - 8, by - 3, 8, 3); ctx.fillRect(bx + 6, by - 3, 8, 3); } }
-  // паркет
-  ctx.fillStyle = '#3a2618'; ctx.fillRect(0, floorY, w, h - floorY);
-  ctx.fillStyle = '#2c1c12';
-  for (let y = floorY; y < h; y += 14) for (let x = ((y - floorY) / 14 % 2) * 40; x < w; x += 80) ctx.fillRect(x, y, 78, 2);
-  ctx.fillStyle = '#4a3220'; for (let y = floorY + 6; y < h; y += 14) ctx.fillRect(0, y, w, 1);
+  // паркет в перспективе: доски сходятся к дальней стене, плинтус, ковёр по центру
+  const depth = h - floorY;
+  ctx.fillStyle = '#3a2618'; ctx.fillRect(0, floorY, w, depth);
+  for (let i = 0; i < 12; i++) {
+    const y0 = floorY + depth * Math.pow(i / 12, 1.5), y1 = floorY + depth * Math.pow((i + 1) / 12, 1.5);
+    ctx.fillStyle = i % 2 ? '#3f2a1a' : '#34220f'; ctx.fillRect(0, y0, w, y1 - y0);
+    ctx.fillStyle = '#261808'; ctx.fillRect(0, Math.round(y1) - 1, w, 1);
+  }
+  ctx.fillStyle = '#261808';
+  for (let k = -8; k <= 8; k++) { const xTop = w / 2 + k * (w / 16), xBot = w / 2 + k * (w / 6); ctx.beginPath(); ctx.moveTo(xTop, floorY); ctx.lineTo(xBot, h); ctx.lineTo(xBot + 2, h); ctx.lineTo(xTop + 1, floorY); ctx.fill(); }
+  ctx.fillStyle = '#4a1a24'; ctx.beginPath(); ctx.moveTo(w * 0.3, floorY + depth * 0.25); ctx.lineTo(w * 0.7, floorY + depth * 0.25); ctx.lineTo(w * 0.85, h - 6); ctx.lineTo(w * 0.15, h - 6); ctx.fill();
+  ctx.fillStyle = '#6a2a34'; ctx.beginPath(); ctx.moveTo(w * 0.32, floorY + depth * 0.3); ctx.lineTo(w * 0.68, floorY + depth * 0.3); ctx.lineTo(w * 0.81, h - 12); ctx.lineTo(w * 0.19, h - 12); ctx.fill();
+  ctx.fillStyle = '#c9a23a'; for (let i = 0; i < 6; i++) { const yy = floorY + depth * (0.3 + i * 0.12); const half = w * (0.18 + i * 0.024); ctx.fillRect(w / 2 - half, yy, 4, 3); ctx.fillRect(w / 2 + half - 4, yy, 4, 3); }
+  ctx.fillStyle = '#2a1a10'; ctx.fillRect(0, floorY - 6, w, 6);
+  // мебель у стен: кресло, столик со свечой, колонна
+  ctx.fillStyle = '#4a2a34'; ctx.fillRect(w * 0.06, floorY - 46, 60, 52); ctx.fillStyle = '#5c3642'; ctx.fillRect(w * 0.06 + 6, floorY - 28, 48, 24); ctx.fillStyle = '#2a1a20'; ctx.fillRect(w * 0.06, floorY - 46, 8, 52); ctx.fillRect(w * 0.06 + 52, floorY - 46, 8, 52);
+  ctx.fillStyle = '#5a3a24'; ctx.fillRect(w * 0.86, floorY - 30, 50, 6); ctx.fillRect(w * 0.86 + 6, floorY - 24, 6, 26); ctx.fillRect(w * 0.86 + 38, floorY - 24, 6, 26);
+  ctx.fillStyle = '#e8e0c0'; ctx.fillRect(w * 0.86 + 22, floorY - 44, 4, 14); ctx.fillStyle = '#ffb040'; ctx.fillRect(w * 0.86 + 21, floorY - 50, 6, 6);
+  ctx.fillStyle = '#3a2a3e'; ctx.fillRect(w * 0.22, floorY * 0.18, 18, floorY * 0.82); ctx.fillRect(w * 0.76, floorY * 0.18, 18, floorY * 0.82); ctx.fillStyle = '#4a3a4e'; ctx.fillRect(w * 0.22 - 4, floorY * 0.18, 26, 8); ctx.fillRect(w * 0.76 - 4, floorY * 0.18, 26, 8);
   // туман по полу
   for (let i = 0; i < 6; i++) {
     const fx = ((i * 190 + t * 18) % (w + 200)) - 100, fy = h - 30 - (i % 3) * 14;
@@ -86,10 +100,10 @@ export default {
 
   preview(ctx, w, h, t, people) {
     ctx.imageSmoothingEnabled = false;
-    drawHall(ctx, w, h, h * 0.78, t, Math.floor(t * 2) % 11 === 0, false);
+    drawHall(ctx, w, h, h * 0.62, t, Math.floor(t * 2) % 11 === 0, false);
     people.slice(0, 4).forEach((p, i) => {
-      const x = 24 + i * 58, y = h * 0.78 - SPRITE_H * 2 + Math.round(Math.sin(t * 6 + i) * 1.5);
-      drawSprite(ctx, p.person, 'idle', x, y, 2);
+      const x = 24 + i * 58, y = h * 0.75 - SPRITE_H * 1.5 + Math.round(Math.sin(t * 6 + i) * 1.5);
+      drawSprite(ctx, p.person, 'idle', x, y, 1.5);
     });
     const gx = ((t * 40) % (w + 80)) - 40;
     ctx.fillStyle = 'rgba(220,230,255,0.35)'; ctx.fillRect(gx, h * 0.3 + Math.sin(t * 3) * 10, 26, 34);
@@ -124,14 +138,14 @@ export default {
 
       const cols = Math.ceil(Math.sqrt(n * 1.8));
       const rows = Math.ceil(n / cols);
-      const floorY = h * 0.86;
-      const scale = Math.max(2, Math.min(4, Math.floor(Math.min((w * 0.8) / cols / (SPRITE_W + 10), (h * 0.5) / rows / SPRITE_H))));
-      const cellW = (w * 0.8) / cols, rowH = scale * SPRITE_H * 0.5;
+      const floorY = h * 0.7;
+      const scale = Math.max(2, Math.min(4, Math.floor(Math.min((w * 0.7) / cols / (SPRITE_W * 0.7), (h * 0.42) / rows / SPRITE_H))));
+      const cellW = (w * 0.7) / cols, rowH = (h - floorY - SPRITE_H * scale * 0.3) / Math.max(1, rows);
       const pos = participants.map((p, i) => {
         const r = Math.floor(i / cols), c = i % cols;
         const inRow = Math.min(cols, n - r * cols);
         const rowOffset = (cols - inRow) * cellW / 2;
-        return { x: Math.round(w * 0.1 + rowOffset + c * cellW + cellW / 2 - SPRITE_W * scale / 2 + ((r % 2) ? cellW * 0.15 : 0)), y: Math.round(floorY - (rows - 1 - r) * rowH - SPRITE_H * scale), r };
+        return { x: Math.round(w * 0.15 + rowOffset + c * cellW + cellW / 2 - SPRITE_W * scale / 2 + ((r % 2) ? cellW * 0.15 : 0)), y: Math.round(floorY + 10 + r * rowH - SPRITE_H * scale * 0.85), r };
       });
 
       while (fired < events.length && t >= events[fired].at) {
@@ -208,6 +222,7 @@ export default {
         const nervous = dread ? Math.round((rnd() - 0.5) * 4) : 0;
         const bob = Math.round(Math.sin(t * 5 + jitter[i]) * 1.5);
         if (blackout) return;
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x + 18 * scale, y + SPRITE_H * scale - 6 * scale, 28 * scale, 4 * scale);
         const fr = winner ? (Math.floor(t * 6) % 2 ? 'cheer' : 'idle') : 'idle';
         drawSprite(ctx, p.person, fr, x + nervous, y + bob, scale);
         label(ctx, p.name, x + SPRITE_W * scale / 2, y - 14 + bob, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);

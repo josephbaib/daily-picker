@@ -20,6 +20,7 @@ function drawChair(ctx, x, y, scale, color = '#2a2a34') {
   ctx.fillStyle = '#111'; [-1, 5, 12].forEach((k) => ctx.fillRect(x + k * s, y + 9 * s, 2 * s, 2 * s)); // колёса
 }
 
+function darken(hex) { const n = parseInt(hex.slice(1), 16); const r = (n >> 16) * 0.6, g = ((n >> 8) & 255) * 0.6, b = (n & 255) * 0.6; return `rgb(${r | 0},${g | 0},${b | 0})`; }
 const COLORS = { black: '#26262c', charcoal: '#3c3c44', navy: '#2a3a68', bluegray: '#55627e', slate: '#5a6478', orange: '#e0782a', brown: '#6b4a2e', white: '#e8e8e8', gray: '#8a8a94', forest: '#3a6a3a', tan: '#c8a878' };
 
 function drawRider(ctx, person, x, y, scale, kick, tilt) {
@@ -31,12 +32,15 @@ function drawRider(ctx, person, x, y, scale, kick, tilt) {
   ctx.rotate(tilt);
   drawChair(ctx, 0, 0, scale * 1.2);
   ctx.drawImage(src, 0, 0, SPRITE_W * scale, bodyRows * scale, -22 * scale, -bodyRows * scale + 3 * scale, SPRITE_W * scale, bodyRows * scale);
-  const k = Math.sin(kick);
-  ctx.fillStyle = COLORS[person.legs] || '#3c3c44';
-  ctx.fillRect(10 * scale, -1 * scale, (9 + k * 4) * scale, 4 * scale);
-  ctx.fillRect((16 + k * 4) * scale, 2 * scale, 4 * scale, (7 + Math.max(0, -k) * 3) * scale);
-  ctx.fillStyle = COLORS[person.feet] || '#26262c';
-  ctx.fillRect((16 + k * 4) * scale, (9 + Math.max(0, -k) * 3) * scale, 6 * scale, 3 * scale);
+  // две ноги в противофазе: дальняя темнее
+  [[Math.sin(kick + Math.PI), 0.7, 1], [Math.sin(kick), 1, 0]].forEach(([k, shade, front]) => {
+    const pants = COLORS[person.legs] || '#3c3c44', shoes = COLORS[person.feet] || '#26262c';
+    ctx.fillStyle = shade < 1 ? darken(pants) : pants;
+    ctx.fillRect((10 - front) * scale, (-1 - front) * scale, (9 + k * 4) * scale, 4 * scale);
+    ctx.fillRect((16 + k * 4 - front) * scale, (2 - front) * scale, 4 * scale, (7 + Math.max(0, -k) * 3) * scale);
+    ctx.fillStyle = shade < 1 ? darken(shoes) : shoes;
+    ctx.fillRect((16 + k * 4 - front) * scale, (9 + Math.max(0, -k) * 3 - front) * scale, 6 * scale, 3 * scale);
+  });
   ctx.restore();
 }
 

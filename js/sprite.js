@@ -1,6 +1,6 @@
 import { hashString, mulberry32 } from './rng.js';
 import { ROSTER } from './roster.js';
-import { buildSheet, sheetOf, frameRect, LPC_CELL, preload } from './lpc.js';
+import { buildSheet, sheetOf, frameRect, LPC_CELL, preload, keyOf } from './lpc.js';
 
 // Персонаж занимает ячейку 64×64; тело внутри примерно 32 в ширину и 56 в высоту.
 export const SPRITE_W = LPC_CELL;
@@ -11,12 +11,12 @@ export const FRAMES = ['idle', 'run0', 'run1', 'run2', 'run3', 'run4', 'run5', '
 export const POOL = {
   skin: ['light', 'light', 'amber'],
   eyes: ['blue', 'brown', 'green', 'gray'],
-  hairMale: ['parted/male/blonde', 'parted/male/dark_brown', 'parted/male/black', 'spiked/male/black', 'curly_short/adult/dark_brown', 'curly_short/adult/black', 'natural/adult/black', null],
-  hairFemale: ['long_straight/female/black', 'lob/female/light_brown', 'lob/female/chestnut', 'long_center_part/female/raven', 'long_center_part/female/dark_brown', 'bob/adult/black', 'curly_short/adult/dark_brown'],
+  hairMale: ['parted/male/blonde', 'parted/male/dark_brown', 'parted/male/black', 'plain/male/black', 'plain/male/dark_brown', 'plain/male/blonde', 'spiked/male/black', 'curly_short/adult/dark_brown', 'curly_short/adult/black', 'natural/adult/black', null],
+  hairFemale: ['long_straight/male/black', 'lob/male/light_brown', 'lob/male/chestnut', 'long_center_part/male/raven', 'long_center_part/male/dark_brown', 'bob/adult/black', 'bob/adult/dark_brown', 'curly_short/adult/dark_brown'],
   beard: [null, null, null, 'basic/dark_brown', 'basic/black', '5oclock_shadow/dark_brown', '5oclock_shadow/black'],
   glasses: [null, null, null, 'round/adult/black', 'nerd/adult/black', 'sunglasses/adult/black'],
-  torsoMale: ['longsleeve/longsleeve/male/forest', 'longsleeve/longsleeve/male/white', 'longsleeve/longsleeve/male/tan', 'longsleeve/longsleeve/male/gray', 'longsleeve/longsleeve/male/black'],
-  torsoFemale: ['longsleeve/longsleeve/female/tan', 'longsleeve/longsleeve/female/white', 'longsleeve/longsleeve/female/black', 'shortsleeve/tshirt/female/black', 'shortsleeve/tshirt/female/white', 'sleeveless/tanktop/female/black', 'longsleeve/longsleeve2_polo/female/white'],
+  torsoMale: ['longsleeve/longsleeve/male/forest', 'longsleeve/longsleeve/male/white', 'longsleeve/longsleeve/male/tan', 'longsleeve/longsleeve/male/gray', 'longsleeve/longsleeve/male/black', 'longsleeve/longsleeve/male/orange'],
+  torsoFemale: ['longsleeve/longsleeve/teen/tan', 'longsleeve/longsleeve/teen/white', 'longsleeve/longsleeve/teen/black', 'longsleeve/longsleeve/teen/forest', 'shortsleeve/tshirt/teen/black', 'shortsleeve/tshirt/teen/white', 'longsleeve/longsleeve2_polo/teen/white'],
   jacket: [null, null, 'gray', 'forest'],
   legsMale: ['black', 'charcoal', 'navy', 'bluegray'],
   legsFemale: ['black', 'slate', 'charcoal', 'navy'],
@@ -33,7 +33,7 @@ export function personFor(name) {
   const rnd = mulberry32(hashString(key.toLowerCase()) ^ 0x1bc);
   const pick = (a) => a[Math.floor(rnd() * a.length)];
   const female = rnd() < 0.5;
-  const p = { body: female ? 'female' : 'male', skin: pick(POOL.skin), eyes: pick(POOL.eyes) };
+  const p = female ? { body: 'teen', head: 'female', skin: pick(POOL.skin), eyes: pick(POOL.eyes) } : { body: 'male', skin: pick(POOL.skin), eyes: pick(POOL.eyes) };
   p.hair = female ? pick(POOL.hairFemale) : pick(POOL.hairMale);
   if (!female) p.beard = pick(POOL.beard);
   p.glasses = pick(POOL.glasses);
@@ -53,7 +53,7 @@ const cache = new Map();
 // Кадр персонажа как холст 64×64·scale. Пока лист не собран, возвращает пустой холст.
 export function spriteCanvas(p, frame, scale = 3, flip = false) {
   const sheet = sheetOf(p);
-  const key = JSON.stringify(p) + '|' + frame + '|' + scale + '|' + (flip ? 1 : 0) + '|' + (sheet ? 1 : 0);
+  const key = keyOf(p) + '|' + frame + '|' + scale + '|' + (flip ? 1 : 0) + '|' + (sheet ? 1 : 0);
   if (cache.has(key)) return cache.get(key);
   const c = document.createElement('canvas');
   c.width = SPRITE_W * scale; c.height = SPRITE_H * scale;
@@ -73,7 +73,7 @@ export function drawSprite(ctx, p, frame, x, y, scale = 3, flip = false) {
 // Портрет: лицо крупно, из кадра анфас.
 export function portraitCanvas(p, scale = 3) {
   const sheet = sheetOf(p);
-  const key = 'portrait|' + JSON.stringify(p) + '|' + scale + '|' + (sheet ? 1 : 0);
+  const key = 'portrait|' + keyOf(p) + '|' + scale + '|' + (sheet ? 1 : 0);
   if (cache.has(key)) return cache.get(key);
   const c = document.createElement('canvas');
   c.width = 32 * scale; c.height = 28 * scale;

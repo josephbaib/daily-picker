@@ -2,7 +2,7 @@
 // Кадры берём из стандартной части листа: ходьба (ряды 8–11), «руки вверх» (ряд 2), падение (ряд 20).
 const BASE = 'assets/lpc/';
 const CELL = 64;
-const ROWS = { cheer: 2, up: 8, left: 9, down: 10, right: 11, hurt: 20 };
+const ROWS = { cheer: 2, up: 8, left: 9, down: 10, right: 11, slashRight: 15, slashLeft: 13, hurt: 20 };
 
 const images = new Map();
 function loadImage(path) {
@@ -19,25 +19,32 @@ function loadImage(path) {
 
 // Список слоёв персонажа в порядке отрисовки (zPos по правилам набора).
 export function layersOf(p) {
-  const bt = p.body; // male | female
-  const legsDir = bt === 'female' ? 'thin' : 'male';
+  const bt = p.body; // male | female | teen (teen: стройное тело, голова женская или мужская по p.head)
+  const legsDir = bt === 'male' ? 'male' : 'thin';
+  const feetDir = bt === 'male' ? 'male' : 'female';
+  const headDir = p.head || (bt === 'male' ? 'male' : 'female');
   const L = [];
   L.push([10, `body/bodies/${bt}/${p.skin}.png`]);
-  if (p.feet) L.push([15, `feet/shoes/${bt}/${p.feet}.png`]);
+  if (p.feet) L.push([15, `feet/shoes/${feetDir}/${p.feet}.png`]);
   if (p.legs) L.push([20, `legs/pants/${legsDir}/${p.legs}.png`]);
   if (p.torso) L.push([35, `torso/clothes/${p.torso}.png`]);
   if (p.jacket) L.push([55, `torso/jacket/collared/male/${p.jacket}.png`]);
-  L.push([100, `head/heads/human/${bt}/${p.skin}.png`]);
+  L.push([100, `head/heads/human/${headDir}/${p.skin}.png`]);
   if (p.eyes) L.push([105, `eyes/human/adult/${p.eyes}.png`]);
   if (p.beard) L.push([110, `beards/beard/${p.beard}.png`]);
   if (p.glasses) L.push([115, `facial/glasses/${p.glasses}.png`]);
-  if (p.earrings) L.push([116, `facial/earrings/stud/${bt}/${p.earrings}.png`]);
+  if (p.earrings) L.push([116, `facial/earrings/stud/${headDir}/${p.earrings}.png`]);
   if (p.hair) L.push([120, `hair/${p.hair}.png`]);
   if (p.headband) L.push([125, `hat/headband/thick/adult/${p.headband}.png`]);
   return L.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
 }
 
-export function keyOf(p) { return JSON.stringify(p); }
+const keys = new WeakMap();
+export function keyOf(p) {
+  let k = keys.get(p);
+  if (!k) { k = JSON.stringify(p); keys.set(p, k); }
+  return k;
+}
 
 const sheets = new Map(); // key -> canvas 832×1344 (или null, пока грузится)
 const pending = new Map();
@@ -75,8 +82,9 @@ export function frameRect(name) {
   else if (name === 'stand-right') { row = ROWS.right; col = 0; }
   else if (name === 'stand-left') { row = ROWS.left; col = 0; }
   else if (name === 'back') { row = ROWS.up; col = 0; }
-  else if (name === 'cheer') { row = ROWS.cheer; col = 3; }
-  else if (name === 'cheer2') { row = ROWS.cheer; col = 5; }
+  else if (name === 'cheer') { row = ROWS.down; col = 0; }
+  else if (name === 'cheer2') { row = ROWS.down; col = 4; }
+  else if (name.startsWith('slash')) { row = ROWS.slashRight; col = Math.min(5, parseInt(name.slice(5), 10) || 0); }
   else if (name.startsWith('hurt')) { row = ROWS.hurt; col = Math.min(5, parseInt(name.slice(4), 10) || 0); }
   return { sx: col * CELL, sy: row * CELL, w: CELL, h: CELL };
 }

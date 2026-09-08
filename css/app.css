@@ -30,8 +30,8 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .chip.on { color: var(--text); border-color: rgba(190,210,255,0.6); }
 
 /* --- хаб --- */
-.hub-body { display: flex; flex-direction: column; height: calc(100% - 70px); padding: 10px 44px 28px; gap: 10px; }
-.games { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 0; gap: 8px; }
+.hub-body { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: calc(100% - 70px); padding: 4px 44px 20px; gap: 6px; }
+.games { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; gap: 6px; position: relative; z-index: 2; }
 .game-tiles { display: flex; gap: 30px; align-items: flex-end; justify-content: center; padding: 84px 10px 74px; position: relative; }
 .game-tiles::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: 62px; height: 1px; background: linear-gradient(90deg, transparent, rgba(200,215,255,0.55), transparent); }
 .game-tiles::before { content: ''; position: absolute; left: 10%; right: 10%; bottom: 40px; height: 22px; background: radial-gradient(60% 100% at 50% 0%, rgba(150,180,255,0.18), transparent 70%); }
@@ -56,7 +56,7 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .csber::before { content: ''; position: absolute; left: 0; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; border: 2px solid #21a038; border-left-color: transparent; transform: rotate(-45deg); }
 .cage { font-size: 10px; border: 1px solid rgba(255,255,255,0.3); padding: 1px 5px; color: var(--muted); }
 #game-desc { color: var(--muted); font-size: 16px; max-width: 640px; text-align: center; min-height: 44px; line-height: 1.5; }
-.play-row { display: flex; align-items: center; justify-content: center; gap: 28px; padding-top: 6px; }
+.play-row { display: flex; align-items: center; justify-content: center; gap: 28px; padding-top: 6px; position: relative; z-index: 6; }
 .play { background: transparent; color: var(--text); border: 1px solid rgba(220,230,255,0.7); border-radius: 2px; padding: 14px 54px; font-size: 18px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase;
   box-shadow: 0 0 22px rgba(150,180,255,0.25), inset 0 0 22px rgba(150,180,255,0.08); transition: box-shadow .2s, transform .1s; }
 .play:hover { box-shadow: 0 0 34px var(--glow), inset 0 0 26px rgba(150,180,255,0.15); }
@@ -64,7 +64,7 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .play:disabled { color: var(--dim); border-color: var(--line); box-shadow: none; cursor: default; }
 .memo { color: var(--muted); font-size: 14px; letter-spacing: 0.04em; }
 
-.team { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+.team { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; position: relative; z-index: 1; }
 .team-grid { display: flex; gap: 28px; overflow-x: auto; padding: 6px 4px 8px; }
 .tile { position: relative; flex: 0 0 auto; width: 110px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; user-select: none; transition: transform .15s, opacity .2s; }
 .tile:hover { transform: translateY(-3px); }
@@ -124,6 +124,10 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 #toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 1px solid rgba(220,230,255,0.6); border-radius: 2px; padding: 12px 20px; font-size: 14px; z-index: 30; max-width: 90vw; box-shadow: 0 0 24px var(--glow); }
 #toast[hidden] { display: none; }
 
+@media (max-height: 760px) {
+  .cover { width: 140px; height: 196px; } .gtile { width: 140px; } .ctitle { font-size: 17px; } .game-tiles { padding: 70px 10px 62px; }
+  .tile canvas { width: 72px; height: 63px; } .tile { width: 90px; }
+}
 @media (max-width: 1000px) {
   .hub-body { padding: 10px 20px 20px; }
   .game-tiles { gap: 14px; padding: 20px 6px 50px; }

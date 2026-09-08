@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Дейлик: кто говорит</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body data-state="idle">
+  <div id="room-form" hidden>
+    <form>
+      <h1>Дейлик: кто говорит</h1>
+      <p>Придумай имя комнаты для команды. Ссылка с ним будет постоянной.</p>
+      <input placeholder="например, ba-team" maxlength="40" autofocus>
+      <button type="submit">Создать или открыть</button>
+    </form>
+  </div>
+
+  <div id="app">
+    <aside id="panel">
+      <div class="ptitle">Участники <span id="count"></span></div>
+      <div id="participants"></div>
+    </aside>
+    <main id="stage">
+      <header>
+        <button id="toggle-panel" title="Скрыть или показать участников">☰</button>
+        <span class="room">Комната: <b id="room-name"></b></span>
+        <select id="game"></select>
+        <button id="start" class="primary">Старт</button>
+        <span class="spacer"></span>
+        <button id="sound">Звук</button>
+        <button id="crt-toggle">ТВ</button>
+        <button id="copy">Ссылка</button>
+      </header>
+      <div id="scene">
+        <canvas id="canvas"></canvas>
+        <div id="overlay" hidden></div>
+        <div id="crt" hidden></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="result" hidden></div>
+  <div id="toast" hidden></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

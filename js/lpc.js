@@ -36,6 +36,7 @@ export function layersOf(p) {
   if (p.earrings) L.push([116, `facial/earrings/stud/${headDir}/${p.earrings}.png`]);
   if (p.hair) L.push([120, `hair/${p.hair}.png`]);
   if (p.headband) L.push([125, `hat/headband/thick/adult/${p.headband}.png`]);
+  (p.layers || []).forEach(([z, path]) => L.push([z, path]));
   return L.sort((a, b) => a[0] - b[0]).map((x) => x[1]);
 }
 

@@ -19,6 +19,7 @@ function loadImage(path) {
 
 // Список слоёв персонажа в порядке отрисовки (zPos по правилам набора).
 export function layersOf(p) {
+  if (p.sheet) return [p.sheet];
   const bt = p.body; // male | female | teen (teen: стройное тело, голова женская или мужская по p.head)
   const legsDir = bt === 'male' ? 'male' : 'thin';
   const feetDir = bt === 'male' ? 'male' : 'female';

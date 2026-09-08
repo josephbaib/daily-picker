@@ -9,10 +9,9 @@ let clockOffset = 0;
 export async function measureClock() {
   try {
     const t0 = Date.now();
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, { headers: { apikey: SUPABASE_KEY } });
+    const { data, error } = await client.rpc('server_time');
     const t1 = Date.now();
-    const server = Date.parse(res.headers.get('date'));
-    if (!Number.isNaN(server)) clockOffset = server + 500 - (t0 + t1) / 2;
+    if (!error && data) { const server = Date.parse(data); if (!Number.isNaN(server)) clockOffset = server - (t0 + t1) / 2; }
   } catch (_) { clockOffset = 0; }
   return clockOffset;
 }

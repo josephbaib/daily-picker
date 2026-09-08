@@ -76,6 +76,7 @@ def rowSegments(r, maxN):
         for x in range(band.width):
             r_, g, b, a = bp[x, y]
             if a > 0 and abs(r_ - g) < 18 and abs(g - b) < 18 and (x in gridCols or y < 3 or y > band.height - 4): bp[x, y] = (0, 0, 0, 0)
+    segs = [(a, b) for a, b in segs if b - a >= 10]  # обрывки линий не считаем кадрами
     frames = [band.crop((max(0, a - 2), 0, min(band.width, b + 2), band.height)) for a, b in segs][:maxN]
     while frames and len(frames) < maxN: frames.append(frames[-1])  # не хватило кадров: повторяем последний
     return frames

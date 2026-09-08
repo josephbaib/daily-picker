@@ -26,6 +26,7 @@ export default {
 
     const state = new Map(participants.map((p) => [p.id, 'alive']));
     const particles = [];
+    const deathTime = new Map();
     let start = null, raf = 0, stopped = false, killed = 0;
 
     // Частицы считаются от времени рождения, а не от кадров: редкие кадры не ломают картинку.
@@ -44,6 +45,7 @@ export default {
 
       while (killed < victims.length && t >= times[killed]) {
         state.set(victims[killed], 'dead');
+        deathTime.set(victims[killed], times[killed]);
         killed++;
         if (onEvent) onEvent('pop');
       }
@@ -65,7 +67,7 @@ export default {
         if (st === 'doomed') { x += Math.round((rnd() - 0.5) * 8); y += Math.round((rnd() - 0.5) * 8); }
         theme.drawCard(ctx, x, y, cw, ch, st, t);
         if (st === 'dead') {
-          if (!p._boom) { p._boom = true; spawn(x + cw / 2, y + ch / 2, p.avatar.shirt, t); }
+          if (!p._boom) { p._boom = true; spawn(x + cw / 2, y + ch / 2, p.avatar.shirt, deathTime.get(p.id)); }
           ctx.fillStyle = '#5a4a7a'; ctx.font = `${Math.min(28, cw / 4)}px ${theme.font}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
           ctx.fillText('X', x + cw / 2, y + ch / 2); ctx.textAlign = 'left';
           return;

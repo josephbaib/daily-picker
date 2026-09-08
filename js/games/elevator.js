@@ -128,13 +128,16 @@ export default {
         const local = (t - r.at) / k;
         if (local < 0) return;
         floorNo = i + 2;
+        const ph = local - drive;
+        // события фиксируем по факту прохождения времени, даже если кадр пропущен
+        if (ph >= alarmT && !dinged.has(r.id)) { dinged.add(r.id); if (onEvent) onEvent('ding'); }
+        if (ph >= alarmT + openT && !exited.find((e) => e.id === r.id)) { exited.push({ id: r.id, p: participants.find((p) => p.id === r.id), time: r.at + (drive + alarmT + openT) * k, floor: i + 1, side: r.side }); if (onEvent) onEvent('pop'); }
         if (local < drive) { moving = true; }
         else if (local < roundLen) {
           moving = false;
-          const ph = local - drive;
           if (ph < alarmT) alarm = true;
-          else if (ph < alarmT + openT) { doors = (ph - alarmT) / openT; if (!dinged.has(r.id)) { dinged.add(r.id); if (onEvent) onEvent('ding'); } }
-          else if (ph < alarmT + openT + exitT) { doors = 1; if (!exited.find((e) => e.id === r.id)) { exited.push({ id: r.id, p: participants.find((p) => p.id === r.id), time: t, floor: i + 1, side: r.side }); if (onEvent) onEvent('pop'); } }
+          else if (ph < alarmT + openT) doors = (ph - alarmT) / openT;
+          else if (ph < alarmT + openT + exitT) doors = 1;
           else doors = 1 - (ph - alarmT - openT - exitT) / closeT;
         }
       });

@@ -164,7 +164,7 @@ async function boot() {
         const left = Math.ceil((untilMs - now) / 1000);
         if (left <= 0) { overlay.textContent = ''; overlay.hidden = true; resolve(); return; }
         if (left !== lastShown) { lastShown = left; overlay.textContent = String(left); overlay.hidden = false; sound.tick(); }
-        requestAnimationFrame(tick);
+        setTimeout(tick, 100); // не rAF: в фоновой вкладке отсчёт всё равно идёт
       };
       tick();
     });

@@ -28,19 +28,18 @@ export default {
     const particles = [];
     let start = null, raf = 0, stopped = false, killed = 0;
 
-    const spawn = (cx, cy, color) => {
+    // Частицы считаются от времени рождения, а не от кадров: редкие кадры не ломают картинку.
+    const spawn = (cx, cy, color, born) => {
       for (let i = 0; i < 26; i++) {
         const a = rnd() * Math.PI * 2, s = 80 + rnd() * 220;
-        particles.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 80, life: 0.7, color: rnd() < 0.5 ? color : '#ffd166' });
+        particles.push({ x: cx, y: cy, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 80, born, color: rnd() < 0.5 ? color : '#ffd166' });
       }
     };
 
-    let last = null;
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) { start = now; last = now; }
+      if (start === null) start = now;
       const t = (now - start) / 1000;
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
       const w = canvas.width, h = canvas.height;
 
       while (killed < victims.length && t >= times[killed]) {
@@ -66,8 +65,8 @@ export default {
         if (st === 'doomed') { x += Math.round((rnd() - 0.5) * 8); y += Math.round((rnd() - 0.5) * 8); }
         theme.drawCard(ctx, x, y, cw, ch, st, t);
         if (st === 'dead') {
-          if (!p._boom) { p._boom = true; spawn(x + cw / 2, y + ch / 2, p.avatar.shirt); }
-          ctx.fillStyle = '#3a2a4c'; ctx.font = `${Math.min(28, cw / 4)}px ${theme.font}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+          if (!p._boom) { p._boom = true; spawn(x + cw / 2, y + ch / 2, p.avatar.shirt, t); }
+          ctx.fillStyle = '#5a4a7a'; ctx.font = `${Math.min(28, cw / 4)}px ${theme.font}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
           ctx.fillText('X', x + cw / 2, y + ch / 2); ctx.textAlign = 'left';
           return;
         }
@@ -79,9 +78,10 @@ export default {
 
       for (let i = particles.length - 1; i >= 0; i--) {
         const q = particles[i];
-        q.life -= dt; if (q.life <= 0) { particles.splice(i, 1); continue; }
-        q.vy += 500 * dt; q.x += q.vx * dt; q.y += q.vy * dt;
-        ctx.fillStyle = q.color; ctx.fillRect(Math.round(q.x), Math.round(q.y), 5, 5);
+        const age = t - q.born;
+        if (age > 0.7) { particles.splice(i, 1); continue; }
+        const px = q.x + q.vx * age, py = q.y + q.vy * age + 250 * age * age;
+        ctx.fillStyle = q.color; ctx.fillRect(Math.round(px), Math.round(py), 5, 5);
       }
 
       if (t >= finalAt) { stopped = true; participants.forEach((p) => delete p._boom); onFreeze(); return; }

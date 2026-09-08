@@ -42,6 +42,7 @@ async function boot() {
   let participants = []; // с аватарами
   let state = 'idle';
   let running = null;
+  let channel = null;
   const seenGames = new Set();
 
   $('#room-name').textContent = roomId;
@@ -62,8 +63,9 @@ async function boot() {
   });
   const result = mountResult($('#result'), { onClose: () => setState('idle') });
 
-  function lastFirstName() {
-    const g = history[0];
+  // Имя первого в последней игре. exceptIds: игры, которые не считаем (например, только что сыгранную).
+  function lastFirstName(exceptOrder = null) {
+    const g = history.find((x) => !exceptOrder || x.order_ids.join() !== exceptOrder.join());
     if (!g) return '';
     const p = participants.find((x) => x.id === g.order_ids[0]);
     return p ? p.name : '';
@@ -112,13 +114,18 @@ async function boot() {
     const game = gameSel.value === 'random' ? pickGame(seed) : gameById(gameSel.value);
     const orderIds = computeOrder({ participants: ps, history, seed });
     setState('starting');
+    const local = () => {
+      history = [{ id: null, order_ids: orderIds }, ...history];
+      runGame({ gameId: null, game: game.id, seed, orderIds, startAt: Date.now() + 3000 });
+    };
+    if (!channel) { local(); return; }
     try {
       const row = await db.insertGame({ room_id: roomId, game: game.id, seed, order_ids: orderIds });
       seenGames.add(row.id);
       await channel.sendStart({ gameId: row.id, game: game.id, seed, orderIds, startAt: db.serverNow() + 3000 });
     } catch (e) {
       toast('База недоступна, играем локально');
-      runGame({ gameId: null, game: game.id, seed, orderIds, startAt: Date.now() + 3000 });
+      local();
     }
   };
 
@@ -129,6 +136,7 @@ async function boot() {
     const game = gameById(gid);
     const ordered = orderIds.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
     if (!game || ordered.length < 1) return;
+    const memo = lastFirstName(orderIds);
     setState('countdown');
     await countdown(startAt);
     setState('playing');
@@ -143,7 +151,7 @@ async function boot() {
         sound.rollStop();
         sound.fanfare();
         setState('reveal');
-        result.show(ordered, lastFirstName());
+        result.show(ordered, memo);
       },
     });
   }
@@ -179,25 +187,30 @@ async function boot() {
 
   // ---------- Данные ----------
   if (room) applyRoom(room);
-  await db.measureClock();
-  const [r, g] = await Promise.all([db.loadRoom(roomId), db.loadGames(roomId)]);
-  history = g;
-  applyRoom(r);
+  try {
+    await db.measureClock();
+    const [r, g] = await Promise.all([db.loadRoom(roomId), db.loadGames(roomId)]);
+    history = g;
+    applyRoom(r);
+    channel = db.subscribeRoom(roomId, {
+      onRoom: (row) => { if (state === 'idle') applyRoom(row); else room = row; },
+      onGame: (row) => {
+        history = [row, ...history.filter((x) => x.id !== row.id)];
+        if (seenGames.has(row.id)) return;
+        seenGames.add(row.id);
+        // Событие старта не дошло: показываем итог без анимации.
+        if (state === 'idle') {
+          const ordered = row.order_ids.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
+          if (ordered.length) { setState('reveal'); result.show(ordered, '', 'Игра уже прошла, показываю итог'); }
+        }
+      },
+      onStart: (payload) => runGame(payload),
+    });
+  } catch (e) {
+    console.error(e);
+    toast('База недоступна: работаем локально, история не сохраняется', 6000);
+    if (!room) applyRoom({ id: roomId, participants: [], settings: {} });
+  }
   setState('idle');
   fit();
-
-  const channel = db.subscribeRoom(roomId, {
-    onRoom: (row) => { if (state === 'idle') applyRoom(row); else room = row; },
-    onGame: (row) => {
-      history = [row, ...history.filter((x) => x.id !== row.id)];
-      if (seenGames.has(row.id)) return;
-      seenGames.add(row.id);
-      // Событие старта не дошло: показываем итог без анимации.
-      if (state === 'idle') {
-        const ordered = row.order_ids.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
-        if (ordered.length) { setState('reveal'); result.show(ordered, '', 'Игра уже прошла, показываю итог'); }
-      }
-    },
-    onStart: (payload) => runGame(payload),
-  });
 }

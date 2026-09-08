@@ -9,7 +9,7 @@ let clockOffset = 0;
 export async function measureClock() {
   try {
     const t0 = Date.now();
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/`, { method: 'HEAD', headers: { apikey: SUPABASE_KEY } });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/`, { method: 'HEAD', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } });
     const t1 = Date.now();
     const server = Date.parse(res.headers.get('date'));
     if (!Number.isNaN(server)) clockOffset = server + 500 - (t0 + t1) / 2;

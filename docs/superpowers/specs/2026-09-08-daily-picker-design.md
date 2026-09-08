@@ -33,6 +33,7 @@
 ```
 index.html
 css/app.css
+js/config.js         URL и publishable key Supabase
 js/app.js            точка входа, состояние экрана
 js/db.js             Supabase: чтение и запись комнаты, история, подписки, канал старта
 js/rng.js            генератор случайных чисел по сиду (Mulberry32)

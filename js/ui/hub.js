@@ -64,18 +64,21 @@ export function mountGameTiles(root, games, { onSelect }) {
   let selected = games[0].id;
   let people = [];
   const tiles = new Map();
-  let raf = 0;
 
   games.forEach((g) => {
     const tile = document.createElement('div');
     tile.className = 'gtile'; tile.dataset.id = g.id;
-    const cv = document.createElement('canvas'); cv.width = 260; cv.height = 190;
+    const cover = document.createElement('div'); cover.className = 'cover';
+    cover.innerHTML = `<div class="cband"><span class="cplat">B2Bсосы</span><span class="cps">дейлик</span></div>
+      <div class="cart"><canvas width="260" height="190"></canvas><div class="cshade"></div><div class="ctitle"></div></div>
+      <div class="cfoot"><span class="csber">Сбер</span><span class="cage">6+</span></div>`;
+    const cv = cover.querySelector('canvas');
+    cover.querySelector('.ctitle').textContent = g.title;
     const body = document.createElement('div'); body.className = 'gbody';
     body.innerHTML = `<div class="gtitle"></div><div class="gdesc"></div><div class="gmeta"></div>`;
     body.querySelector('.gtitle').textContent = g.title;
     body.querySelector('.gdesc').textContent = g.description || '';
-    body.querySelector('.gmeta').textContent = g.duration ? `около ${g.duration} секунд` : 'каждый раз разная';
-    tile.append(cv, body);
+    tile.append(cover, body);
     tile.onclick = () => select(g.id);
     tile.ondblclick = () => onSelect(g.id, true);
     root.append(tile);
@@ -89,13 +92,11 @@ export function mountGameTiles(root, games, { onSelect }) {
     onSelect(id, false, g);
   }
 
-  function loop(now) {
+  function paint() {
     tiles.forEach(({ cv, g }) => {
-      if (g.preview) g.preview(cv.getContext('2d'), cv.width, cv.height, now / 1000, people);
+      if (g.preview) g.preview(cv.getContext('2d'), cv.width, cv.height, 4.2, people);
     });
-    raf = requestAnimationFrame(loop);
   }
-  raf = requestAnimationFrame(loop);
   select(selected);
 
   return {
@@ -105,6 +106,6 @@ export function mountGameTiles(root, games, { onSelect }) {
       const ids = games.map((g) => g.id);
       select(ids[(ids.indexOf(selected) + dir + ids.length) % ids.length]);
     },
-    setPeople(ps) { people = ps.length ? ps : ['Аня', 'Боря', 'Вера', 'Гоша'].map((n) => ({ name: n, person: personFor(n) })); },
+    setPeople(ps) { people = ps.length ? ps : ['Аня', 'Боря', 'Вера', 'Гоша'].map((n) => ({ name: n, person: personFor(n) })); paint(); },
   };
 }

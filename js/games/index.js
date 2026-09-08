@@ -1,10 +1,10 @@
 import race from './race.js';
 import chairs from './chairs.js';
-import survivor from './survivor.js';
+import horror from './horror.js';
 import elevator from './elevator.js';
 import { mulberry32 } from '../rng.js';
 
-export const GAMES = [race, chairs, survivor, elevator];
+export const GAMES = [race, chairs, horror, elevator];
 
 export function gameById(id) {
   return GAMES.find((g) => g.id === id) || null;

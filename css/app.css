@@ -25,7 +25,7 @@ h2 { font-size: 13px; font-weight: 400; text-transform: uppercase; letter-spacin
 h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color: var(--dim); }
 
 /* --- шапка --- */
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 26px 44px 0; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 26px 44px 0; position: relative; z-index: 3; }
 .logo { font-size: 20px; font-weight: 300; letter-spacing: 0.4em; text-transform: uppercase; color: var(--text); }
 .logo .room { font-size: 18px; letter-spacing: 0.08em; text-transform: none; color: var(--accent); margin-left: 14px; background: none; border: none; padding: 2px 8px; border-bottom: 1px solid transparent; }
 .logo .room:hover { border-bottom-color: var(--glow); }
@@ -37,16 +37,27 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 /* --- хаб --- */
 .hub-body { display: flex; flex-direction: column; height: calc(100% - 70px); padding: 10px 44px 28px; gap: 10px; }
 .games { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; min-height: 0; gap: 8px; }
-.game-tiles { display: flex; gap: 26px; align-items: flex-end; justify-content: center; padding: 30px 10px 70px; }
-.gtile { width: 190px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: transform .25s ease, opacity .25s; opacity: 0.55; position: relative; }
-.gtile canvas { width: 190px; height: 138px; display: block; image-rendering: pixelated; border: 1px solid var(--line); background: #06070f;
-  -webkit-box-reflect: below 6px linear-gradient(transparent 55%, rgba(255,255,255,0.25)); }
+.game-tiles { display: flex; gap: 26px; align-items: flex-end; justify-content: center; padding: 56px 10px 70px; }
+.gtile { width: 176px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: transform .25s ease, opacity .25s; opacity: 0.55; position: relative; }
 .gtile .gbody { text-align: center; }
-.gtile .gtitle { font-size: 17px; font-weight: 400; letter-spacing: 0.12em; text-transform: uppercase; }
+.gtile .gtitle { font-size: 15px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; }
 .gtile .gdesc, .gtile .gmeta { display: none; }
 .gtile:hover { opacity: 0.9; }
-.gtile.selected { opacity: 1; transform: translateY(-14px) scale(1.16); }
-.gtile.selected canvas { border-color: rgba(220,230,255,0.9); box-shadow: 0 0 26px var(--glow), 0 0 60px rgba(120,150,255,0.25); }
+.gtile.selected { opacity: 1; transform: translateY(-14px) scale(1.14); }
+.gtile.selected .cover { border-color: rgba(220,230,255,0.9); box-shadow: 0 0 26px var(--glow), 0 0 60px rgba(120,150,255,0.25); }
+/* обложка как коробка PS2: тёмная шапка с платформой, арт, полоса внизу */
+.cover { width: 176px; height: 248px; background: #06070f; border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; -webkit-box-reflect: below 6px linear-gradient(transparent 60%, rgba(255,255,255,0.22)); }
+.cband { height: 30px; background: linear-gradient(180deg, #0b1b34, #061024); border-bottom: 1px solid rgba(120,160,255,0.4); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.cplat { font-family: var(--font); font-weight: 400; font-size: 13px; letter-spacing: 0.08em; color: #dfe8ff; font-style: italic; }
+.cps { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #6f8cc8; }
+.cart { position: relative; flex: 1; overflow: hidden; }
+.cart canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; object-fit: cover; }
+.cshade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.85) 100%); }
+.ctitle { position: absolute; left: 10px; right: 10px; bottom: 10px; font-family: var(--font); font-weight: 400; font-size: 22px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; text-shadow: 0 2px 0 #000, 0 0 18px rgba(120,160,255,0.6); }
+.cfoot { height: 28px; background: #0a0a12; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }
+.csber { font-size: 12px; font-weight: 400; letter-spacing: 0.06em; color: #21a038; padding-left: 16px; position: relative; }
+.csber::before { content: ''; position: absolute; left: 0; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; border: 2px solid #21a038; border-left-color: transparent; transform: rotate(-45deg); }
+.cage { font-size: 10px; border: 1px solid rgba(255,255,255,0.3); padding: 1px 5px; color: var(--muted); }
 #game-desc { color: var(--muted); font-size: 16px; max-width: 640px; text-align: center; min-height: 44px; line-height: 1.5; }
 .play-row { display: flex; align-items: center; justify-content: center; gap: 28px; padding-top: 6px; }
 .play { background: transparent; color: var(--text); border: 1px solid rgba(220,230,255,0.7); border-radius: 2px; padding: 14px 54px; font-size: 18px; font-weight: 400; letter-spacing: 0.3em; text-transform: uppercase;
@@ -113,7 +124,7 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 @media (max-width: 1000px) {
   .hub-body { padding: 10px 20px 20px; }
   .game-tiles { gap: 14px; padding: 20px 6px 50px; }
-  .gtile { width: 140px; } .gtile canvas { width: 140px; height: 102px; }
+  .gtile { width: 130px; } .cover { width: 130px; height: 184px; } .ctitle { font-size: 16px; }
   .rname { font-size: 40px; }
   #overlay { font-size: 110px; }
 }

@@ -174,7 +174,7 @@ export default {
             ctx.globalAlpha = 1;
           } else if (d.kind === 'chandelier') {
             if (age < 0.35) drawSprite(ctx, p.person, 'idle', x, y, scale);
-            else { const src = spriteCanvas(p.person, 'idle', scale); ctx.drawImage(src, x, y + SPRITE_H * scale * 0.7, src.width, src.height * 0.3); if (age < 0.45) particles.burst(x + SPRITE_W * scale / 2, y + SPRITE_H * scale * 0.6, t, rnd, { count: 24, speed: 220, colors: ['#ffd060', '#e8e0c0', '#8a7030'], life: 0.9 }); }
+            else { drawSprite(ctx, p.person, 'hurt' + Math.min(5, Math.floor((age - 0.35) * 12)), x, y, scale); if (age < 0.45) particles.burst(x + SPRITE_W * scale / 2, y + SPRITE_H * scale * 0.6, t, rnd, { count: 24, speed: 220, colors: ['#ffd060', '#e8e0c0', '#8a7030'], life: 0.9 }); }
           } else if (d.kind === 'blackout') {
             if (age < 0.7) { /* темно, персонажа не видно */ } else if (age < 1.3) { ctx.fillStyle = '#ffe8a0'; ctx.fillRect(x + SPRITE_W * scale / 2 - 4, y + SPRITE_H * scale - 6, 10, 6); }
           } else if (d.kind === 'monster') {

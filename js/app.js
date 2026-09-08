@@ -1,4 +1,4 @@
-import { personFor } from './sprite.js';
+import { personFor, preload } from './sprite.js';
 import { computeOrder } from './order.js';
 import { randomSeed } from './rng.js';
 import { GAMES, gameById, pickGame } from './games/index.js';
@@ -116,6 +116,7 @@ async function boot() {
     team.set(participants);
     $('#room-name').textContent = roomTitle();
     tiles.setPeople(present());
+    preload(participants.map((p) => p.person)).then(() => { team.set(participants); tiles.setPeople(present()); });
     $('#memo').textContent = memoText(lastFirstName());
     updateStart();
   }
@@ -162,6 +163,7 @@ async function boot() {
     const ordered = payload.orderIds.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
     if (!game || ordered.length < 1) { setState('idle'); return; }
     const memo = lastFirstName(payload.orderIds);
+    await preload(ordered.map((p) => p.person));
     show('game'); fit();
     $('#hud-title').textContent = game.title;
     setState('countdown');

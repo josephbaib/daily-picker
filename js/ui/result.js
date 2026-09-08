@@ -54,7 +54,7 @@ export function mountResult(root, { onAgain, onMenu }) {
       const first = ordered[0];
       root.querySelector('.rname').textContent = first.name;
       const av = root.querySelector('.rav');
-      const src = spriteCanvas(first.person, 'cheer', 6);
+      const src = spriteCanvas(first.person, 'cheer', 4);
       av.width = src.width; av.height = src.height; av.getContext('2d').drawImage(src, 0, 0);
       const ol = root.querySelector('.rorder'); ol.innerHTML = '';
       ordered.slice(1).forEach((p, i) => {

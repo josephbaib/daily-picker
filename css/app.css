@@ -72,7 +72,7 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .tile { position: relative; flex: 0 0 auto; width: 118px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: border-color .15s, box-shadow .15s; user-select: none; }
 .tile:hover { border-color: rgba(190,210,255,0.6); box-shadow: 0 0 16px rgba(150,180,255,0.25); }
 .tile.away { opacity: 0.35; filter: grayscale(0.9); }
-.tile canvas { image-rendering: pixelated; width: 96px; height: 63px; }
+.tile canvas { image-rendering: pixelated; width: 96px; height: 84px; }
 .tile .tname { font-size: 14px; font-weight: 400; letter-spacing: 0.06em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile .tstate { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
 .tile .tbtns { position: absolute; top: 4px; right: 4px; display: none; gap: 3px; }
@@ -99,11 +99,11 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .rbox { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center; padding: 24px; max-width: 1100px; }
 .rkicker { font-size: 14px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--muted); }
 .rwinner { display: flex; align-items: center; gap: 40px; padding: 22px 56px 22px 34px; border: 1px solid rgba(220,230,255,0.7); background: rgba(0,0,0,0.5); box-shadow: 0 0 40px var(--glow), inset 0 0 40px rgba(150,180,255,0.1); }
-.rwinner canvas { image-rendering: pixelated; width: 192px; height: 240px; }
+.rwinner canvas { image-rendering: pixelated; width: 256px; height: 256px; }
 .rname { font-size: 72px; font-weight: 300; line-height: 1; letter-spacing: 0.06em; }
 .rorder { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .rorder li { display: flex; align-items: center; gap: 12px; padding: 6px 18px 6px 6px; border: 1px solid var(--line); background: rgba(0,0,0,0.5); font-size: 16px; letter-spacing: 0.06em; }
-.rorder li canvas { image-rendering: pixelated; width: 48px; height: 32px; }
+.rorder li canvas { image-rendering: pixelated; width: 48px; height: 42px; }
 .rorder li b { color: var(--muted); font-weight: 400; }
 .rmemo { color: var(--muted); font-size: 14px; letter-spacing: 0.04em; }
 .rbtns { display: flex; gap: 14px; margin-top: 4px; }

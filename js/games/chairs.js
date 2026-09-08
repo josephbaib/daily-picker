@@ -1,4 +1,4 @@
-import { spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js';
+import { spriteCanvas, SPRITE_W } from '../sprite.js';
 import { mulberry32 } from '../rng.js';
 import { label, makeParticles } from './scene.js';
 
@@ -20,22 +20,23 @@ function drawChair(ctx, x, y, scale, color = '#2a2a34') {
   ctx.fillStyle = '#111'; [-1, 5, 12].forEach((k) => ctx.fillRect(x + k * s, y + 9 * s, 2 * s, 2 * s)); // колёса
 }
 
+const COLORS = { black: '#26262c', charcoal: '#3c3c44', navy: '#2a3a68', bluegray: '#55627e', slate: '#5a6478', orange: '#e0782a', brown: '#6b4a2e', white: '#e8e8e8', gray: '#8a8a94', forest: '#3a6a3a', tan: '#c8a878' };
+
 function drawRider(ctx, person, x, y, scale, kick, tilt) {
-  // персонаж сидит: верх тела из спрайта, ноги рисуем отдельно и они толкаются
-  const src = spriteCanvas(person, 'run1', scale);
-  const bodyRows = 30;
+  // персонаж сидит: верх тела из кадра «стоит вправо», ноги рисуем отдельно и они толкаются
+  const src = spriteCanvas(person, 'stand-right', scale);
+  const bodyRows = 42;
   ctx.save();
-  ctx.translate(x + 6 * scale, y);
+  ctx.translate(x + 12 * scale, y);
   ctx.rotate(tilt);
-  drawChair(ctx, 0, 0, scale * 1.4);
-  ctx.drawImage(src, 0, 0, SPRITE_W * scale, bodyRows * scale, -4 * scale, -bodyRows * scale + 2 * scale, SPRITE_W * scale, bodyRows * scale);
-  // ноги: бедро вперёд, голень вниз, толчок
+  drawChair(ctx, 0, 0, scale * 1.2);
+  ctx.drawImage(src, 0, 0, SPRITE_W * scale, bodyRows * scale, -22 * scale, -bodyRows * scale + 3 * scale, SPRITE_W * scale, bodyRows * scale);
   const k = Math.sin(kick);
-  ctx.fillStyle = person.pantsColor;
-  ctx.fillRect(12 * scale, -1 * scale, (8 + k * 4) * scale, 4 * scale);
-  ctx.fillRect((17 + k * 4) * scale, 2 * scale, 4 * scale, (7 + Math.max(0, -k) * 3) * scale);
-  ctx.fillStyle = person.shoesColor;
-  ctx.fillRect((17 + k * 4) * scale, (9 + Math.max(0, -k) * 3) * scale, 6 * scale, 3 * scale);
+  ctx.fillStyle = COLORS[person.legs] || '#3c3c44';
+  ctx.fillRect(10 * scale, -1 * scale, (9 + k * 4) * scale, 4 * scale);
+  ctx.fillRect((16 + k * 4) * scale, 2 * scale, 4 * scale, (7 + Math.max(0, -k) * 3) * scale);
+  ctx.fillStyle = COLORS[person.feet] || '#26262c';
+  ctx.fillRect((16 + k * 4) * scale, (9 + Math.max(0, -k) * 3) * scale, 6 * scale, 3 * scale);
   ctx.restore();
 }
 
@@ -124,7 +125,7 @@ export default {
       const w = canvas.width, h = canvas.height;
       const scale = n <= 8 ? Math.max(2, Math.min(4, Math.floor(h / 260))) : Math.max(2, Math.min(3, Math.floor(h / 330)));
       const floorY = Math.round(h * 0.52);
-      const rowH = (h - floorY - 26 * scale) / Math.max(1, rows);
+      const rowH = (h - floorY - 20 * scale) / Math.max(1, rows);
       const startX = 100, L = w * 2.6, finishX = startX + L;
       const ps = riders.map((r) => progress(r, t));
       const leader = Math.max(...ps);
@@ -155,14 +156,14 @@ export default {
         const r = riders[i];
         const x = Math.round(startX + ps[i] * L - camX);
         if (x < -120 || x > w + 120) return;
-        const y = Math.round(floorY + r.row * rowH + 8 * scale);
+        const y = Math.round(floorY + r.row * rowH + 40 * scale);
         const speed = t < 1 ? 1 : 0;
         const spinning = time > r.spinAt && time < r.spinAt + 0.7 && t < 0.9;
         const tilt = spinning ? ((time - r.spinAt) / 0.7) * Math.PI * 2 : Math.sin(time * 8 + r.kick) * 0.03 * speed;
-        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x, y + 15 * scale, 22 * scale, scale);
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x - 4 * scale, y + 14 * scale, 34 * scale, scale);
         drawRider(ctx, r.p.person, x, y, scale, time * 12 * (0.7 + r.f * 0.3) + r.kick, tilt);
         const first = t >= 1 && r.rank === 0;
-        label(ctx, r.p.name, x + 10 * scale, y - 33 * scale, scale >= 4 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
+        label(ctx, r.p.name, x + 12 * scale, y - 46 * scale, scale >= 4 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
 
       if (doorOpened === null && leader >= 0.975) { doorOpened = time; if (onEvent) onEvent('pop'); particles.burst(fx + 40, floorY * 0.5, time, rnd, { count: 50, speed: 240, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#ffffff'], life: 1.4 }); }

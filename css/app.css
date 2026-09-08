@@ -16,7 +16,8 @@ h2 .sub { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left
 /* --- шапка --- */
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 32px; }
 .logo { font-size: 22px; font-weight: 700; letter-spacing: 0.02em; }
-.logo .room { font-weight: 400; color: var(--muted); margin-left: 10px; font-size: 16px; }
+.logo .room { font-weight: 500; color: var(--accent); margin-left: 10px; font-size: 18px; background: none; border: none; padding: 2px 6px; border-radius: 8px; }
+.logo .room:hover { background: rgba(255,209,102,0.12); }
 .tools { display: flex; gap: 8px; }
 .chip { background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 13px; color: var(--text); }
 .chip:hover { border-color: var(--accent); }
@@ -67,7 +68,6 @@ h2 .sub { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left
 #hud-time { color: var(--accent); font-family: var(--pixel); font-size: 12px; }
 #overlay[hidden] { display: none; }
 #overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--pixel); font-size: 180px; color: var(--accent); text-shadow: 10px 10px 0 rgba(0,0,0,0.6); pointer-events: none; }
-#crt { position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0) 2px, rgba(0,0,0,0) 5px); box-shadow: inset 0 0 160px rgba(0,0,0,0.7); }
 
 /* --- результат --- */
 #result[hidden] { display: none; }

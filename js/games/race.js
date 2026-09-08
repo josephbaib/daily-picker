@@ -35,7 +35,7 @@ export default {
     const rows = Math.min(n, 5);
     const runners = participants.map((p, i) => ({
       p, rank: rank.get(p.id), row: i % rows,
-      final: 1 - rank.get(p.id) * (0.42 / n),
+      final: 1 - rank.get(p.id) * (0.22 / n),
       f: 1.1 + rnd() * 1.3, phase: rnd() * Math.PI * 2, amp: 0.07 + rnd() * 0.07, gait: rnd() * 4,
     }));
     const particles = makeParticles();

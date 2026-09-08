@@ -5,8 +5,8 @@ import { drawSpotlight, label, makeParticles } from './scene.js';
 // Арена: персонажи стоят под прожекторами, каждый раунд одного уносит событие. Последний говорит первым.
 export default {
   id: 'survivor',
-  title: 'Арена',
-  description: 'Люки, молнии и луч с неба уносят по одному. Кто остался, тот и первый.',
+  title: 'Сцена',
+  description: 'Прожектор мечется по сцене. Люк, молния или луч уносят по одному. Кто остался, тот и первый.',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,
@@ -70,14 +70,34 @@ export default {
         return { x: w * 0.1 + rowOffset + c * cellW + cellW / 2 - SPRITE_W * scale / 2 + ((r % 2) ? cellW * 0.15 : 0), y: floorY - (rows - 1 - r) * rowH - SPRITE_H * scale, r };
       });
 
-      // фон: тёмная арена, сетка пола, столбы света
+      // фон: театральная сцена. Занавес сзади, доски, рампа спереди.
       ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = '#07070f'; ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#12122a'; ctx.fillRect(0, floorY - rows * rowH - 40, w, h);
-      ctx.fillStyle = '#1e1e3a';
-      for (let y = floorY - rows * rowH - 40; y < h; y += 18) ctx.fillRect(0, y, w, 2);
-      for (let x = 0; x < w; x += 48) ctx.fillRect(x, floorY - rows * rowH - 40, 2, h);
-      ctx.fillStyle = '#2a2a48'; ctx.fillRect(0, floorY + 6, w, h);
+      const stageTop = floorY - rows * rowH - 40;
+      ctx.fillStyle = '#0b0710'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#5a1020'; ctx.fillRect(0, 0, w, stageTop);
+      for (let x = 0; x < w; x += 28) {
+        ctx.fillStyle = '#7a1a2c'; ctx.fillRect(x, 0, 10, stageTop);
+        ctx.fillStyle = '#3e0a18'; ctx.fillRect(x + 18, 0, 6, stageTop);
+      }
+      ctx.fillStyle = '#4a0c1c'; ctx.fillRect(0, 0, w, 34);
+      for (let x = 0; x < w; x += 40) { ctx.fillStyle = '#6e1428'; ctx.fillRect(x, 12, 20, 18); }
+      ctx.fillStyle = '#e0b040'; ctx.fillRect(0, 32, w, 4);
+      const depth = h - stageTop;
+      for (let i = 0; i < 10; i++) {
+        const y0 = Math.round(stageTop + (depth * i) / 10), y1 = Math.round(stageTop + (depth * (i + 1)) / 10);
+        ctx.fillStyle = i % 2 ? '#7a5a3a' : '#8a6642'; ctx.fillRect(0, y0, w, y1 - y0);
+        ctx.fillStyle = '#5c4028'; ctx.fillRect(0, y1 - 2, w, 2);
+      }
+      ctx.fillStyle = '#5c4028';
+      for (let k = -6; k <= 6; k++) {
+        const xTop = w / 2 + k * (w / 12), xBot = w / 2 + k * (w / 7);
+        ctx.beginPath(); ctx.moveTo(xTop, stageTop); ctx.lineTo(xBot, h); ctx.lineTo(xBot + 2, h); ctx.lineTo(xTop + 2, stageTop); ctx.fill();
+      }
+      ctx.fillStyle = '#1a1020'; ctx.fillRect(0, h - 14, w, 14);
+      for (let x = 24; x < w; x += 64) {
+        ctx.fillStyle = 'rgba(255,220,120,0.10)'; ctx.fillRect(x - 24, h - 90, 56, 80);
+        ctx.fillStyle = '#ffe08a'; ctx.fillRect(x, h - 18, 10, 8);
+      }
       // прожекторы: мечутся, перед событием останавливаются на жертве
       let target = -1;
       if (current) {

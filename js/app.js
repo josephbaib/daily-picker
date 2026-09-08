@@ -41,7 +41,14 @@ async function boot() {
   let state = 'idle';
   const seenGames = new Set();
 
-  $('#room-name').textContent = roomId;
+  const roomTitle = () => (room && room.settings && room.settings.title) || roomId;
+  $('#room-name').onclick = async () => {
+    const v = prompt('Как называется команда?', roomTitle());
+    if (v === null) return;
+    const settings = { ...(room.settings || {}), title: v.trim() || undefined };
+    applyRoom({ ...room, settings });
+    try { await db.saveSettings(roomId, settings); } catch (e) { toast('Не сохранилось: ' + e.message); }
+  };
 
   // ---------- Хаб ----------
   const team = mountTeam($('#team-grid'), {
@@ -90,6 +97,7 @@ async function boot() {
     participants = (r.participants || []).map((p) => ({ ...p, person: personFor(p.name) }));
     try { localStorage.setItem(cacheKey, JSON.stringify({ id: r.id, participants: r.participants, settings: r.settings })); } catch (_) {}
     team.set(participants);
+    $('#room-name').textContent = roomTitle();
     tiles.setPeople(present());
     $('#memo').textContent = memoText(lastFirstName());
     updateStart();
@@ -152,16 +160,15 @@ async function boot() {
       if (frozen) return; frozen = true; clearTimeout(watchdog);
         clearInterval(timer);
         setState('frozen');
-        sound.rollStart();
-        await countdown(Date.now() + 3000, false);
-        sound.rollStop(); sound.fanfare();
+        await new Promise((r) => setTimeout(r, 900));
+        sound.fanfare();
         setState('reveal');
         show('result');
         result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : '');
     };
     running = game.play({
       canvas, participants: ordered, order: payload.orderIds, seed: payload.seed,
-      onEvent: (ev) => { if (ev === 'pop') sound.pop(); if (ev === 'tick') sound.tick(); },
+      onEvent: (ev) => { if (ev === 'pop') sound.pop(); if (ev === 'tick') sound.tick(); if (ev === 'ding') sound.ding(); if (ev === 'whoosh') sound.whoosh(); },
       onFreeze: freeze,
     });
   }
@@ -181,16 +188,12 @@ async function boot() {
   }
 
   // ---------- Настройки ----------
-  const soundBtn = $('#sound'), crtBtn = $('#crt-toggle');
+  const soundBtn = $('#sound');
   const syncButtons = () => {
     soundBtn.textContent = sound.enabled ? 'Звук вкл' : 'Звук выкл'; soundBtn.classList.toggle('on', sound.enabled);
-    const crt = localStorage.getItem('dp:crt') === '1';
-    crtBtn.textContent = crt ? 'ТВ вкл' : 'ТВ выкл'; crtBtn.classList.toggle('on', crt);
-    $('#crt').hidden = !crt;
   };
   sound.setEnabled(localStorage.getItem('dp:sound') === '1');
   soundBtn.onclick = () => { sound.setEnabled(!sound.enabled); localStorage.setItem('dp:sound', sound.enabled ? '1' : '0'); syncButtons(); };
-  crtBtn.onclick = () => { localStorage.setItem('dp:crt', localStorage.getItem('dp:crt') === '1' ? '0' : '1'); syncButtons(); };
   $('#copy').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Ссылка скопирована'); } catch (_) { toast(location.href, 8000); } };
   syncButtons();
 

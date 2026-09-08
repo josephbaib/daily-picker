@@ -1,42 +1,74 @@
-// Чиптюн через Web Audio. Файлов нет. Всё продублировано визуально, звук только бонус.
+// Звук через Web Audio: шум, фильтры, огибающие. Файлов нет. Всё продублировано визуально.
 let ctx = null;
 let enabled = false;
-let rollTimer = null;
+let noiseBuf = null;
 
 function ac() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
   if (ctx.state === 'suspended') ctx.resume();
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
   return ctx;
 }
 
-function beep(freq, dur, type = 'square', vol = 0.08, when = 0) {
+function env(node, t0, vol, attack, decay) {
+  const g = ac().createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + decay);
+  node.connect(g).connect(ac().destination);
+  return g;
+}
+
+function tone(freq, { type = 'sine', vol = 0.1, attack = 0.005, decay = 0.2, when = 0, slide = null, detune = 0 } = {}) {
   if (!enabled) return;
-  const a = ac();
+  const a = ac(), t0 = a.currentTime + when;
   const o = a.createOscillator();
-  const g = a.createGain();
-  o.type = type;
-  o.frequency.value = freq;
-  g.gain.setValueAtTime(vol, a.currentTime + when);
-  g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + when + dur);
-  o.connect(g).connect(a.destination);
-  o.start(a.currentTime + when);
-  o.stop(a.currentTime + when + dur + 0.02);
+  o.type = type; o.frequency.setValueAtTime(freq, t0); o.detune.value = detune;
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + attack + decay);
+  env(o, t0, vol, attack, decay);
+  o.start(t0); o.stop(t0 + attack + decay + 0.05);
+}
+
+function noise({ vol = 0.1, attack = 0.01, decay = 0.2, when = 0, filter = 'bandpass', freq = 1000, q = 1, sweep = null } = {}) {
+  if (!enabled) return;
+  const a = ac(), t0 = a.currentTime + when;
+  const src = a.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+  const f = a.createBiquadFilter(); f.type = filter; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+  if (sweep) f.frequency.exponentialRampToValueAtTime(sweep, t0 + attack + decay);
+  src.connect(f);
+  env(f, t0, vol, attack, decay);
+  src.start(t0); src.stop(t0 + attack + decay + 0.05);
 }
 
 export const sound = {
   get enabled() { return enabled; },
   setEnabled(v) { enabled = v; if (v) ac(); },
-  tick() { beep(880, 0.08); },
-  go() { beep(1320, 0.25, 'square', 0.1); },
-  pop() { beep(220, 0.12, 'sawtooth', 0.09); beep(110, 0.2, 'square', 0.06, 0.03); },
-  step() { beep(440 + Math.random() * 200, 0.03, 'square', 0.02); },
-  rollStart() {
-    if (rollTimer || !enabled) return;
-    rollTimer = setInterval(() => beep(160 + Math.random() * 40, 0.04, 'triangle', 0.05), 70);
+  // отсчёт: мягкий деревянный щелчок
+  tick() { tone(720, { type: 'sine', vol: 0.12, decay: 0.09 }); noise({ vol: 0.05, decay: 0.03, freq: 2500 }); },
+  // старт: двойной колокольчик
+  go() { tone(660, { type: 'triangle', vol: 0.14, decay: 0.35 }); tone(990, { type: 'triangle', vol: 0.12, decay: 0.6, when: 0.12 }); },
+  // выбывание: глухой удар и короткий шум
+  pop() { tone(140, { type: 'sine', vol: 0.2, decay: 0.25, slide: 45 }); noise({ vol: 0.12, decay: 0.12, freq: 600, filter: 'lowpass' }); },
+  // свист пролёта
+  whoosh() { noise({ vol: 0.12, attack: 0.05, decay: 0.3, freq: 400, sweep: 2400, q: 0.7 }); },
+  // звонок лифта
+  ding() { tone(1319, { type: 'sine', vol: 0.12, decay: 0.9 }); tone(2637, { type: 'sine', vol: 0.05, decay: 0.6 }); },
+  // аплодисменты: много коротких шумовых хлопков
+  applause(dur = 1.6) {
+    for (let i = 0; i < dur * 22; i++) noise({ vol: 0.05 + Math.random() * 0.05, decay: 0.03, when: Math.random() * dur, freq: 1200 + Math.random() * 1500, q: 2 });
   },
-  rollStop() { clearInterval(rollTimer); rollTimer = null; },
+  step() {},
+  rollStart() {}, rollStop() {},
+  // финал: аккорд трубами и аплодисменты
   fanfare() {
-    [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.18, 'square', 0.09, i * 0.12));
-    beep(1046, 0.5, 'square', 0.1, 0.5);
+    [[523, 0], [659, 0], [784, 0], [1047, 0.18]].forEach(([f, w]) => {
+      tone(f, { type: 'sawtooth', vol: 0.05, attack: 0.02, decay: 0.7, when: w, detune: -6 });
+      tone(f, { type: 'triangle', vol: 0.07, attack: 0.02, decay: 0.7, when: w, detune: 6 });
+    });
+    this.applause(1.8);
   },
 };

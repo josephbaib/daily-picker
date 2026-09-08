@@ -6,6 +6,7 @@ import { sound } from './sound.js';
 import { mountTeam, mountGameTiles } from './ui/hub.js';
 import { mountResult } from './ui/result.js';
 import * as db from './db.js';
+import { NPCS } from './games/scene.js';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -16,17 +17,48 @@ function toast(text, ms = 4000) {
   clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, ms);
 }
 
-// Плывущие кубы на фоне, как в меню приставки.
+// Плывущие кубы на фоне, как в меню приставки. Один холст, без теней и 3D: не грузит процессор.
 (function cubes() {
-  const fx = $('#fx');
-  for (let i = 0; i < 26; i++) {
-    const c = document.createElement('div');
-    c.className = 'cube';
-    const size = 14 + Math.random() * 40;
-    c.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;animation-duration:${18 + Math.random() * 26}s;animation-delay:${-Math.random() * 40}s;opacity:0`;
-    fx.append(c);
+  const cv = document.createElement('canvas');
+  cv.id = 'fx-canvas';
+  $('#fx').append(cv);
+  const ctx = cv.getContext('2d');
+  const N = 34;
+  const cubes = Array.from({ length: N }, (_, i) => ({
+    x: Math.random(), y: Math.random() * 1.2, s: 10 + Math.random() * 34, v: 0.012 + Math.random() * 0.03,
+    r: Math.random() * Math.PI, w: (Math.random() - 0.5) * 0.6, a: 0.25 + Math.random() * 0.5, d: i % 3,
+  }));
+  // заготовка куба со свечением, рисуется один раз
+  const sprite = document.createElement('canvas'); sprite.width = 96; sprite.height = 96;
+  const sc = sprite.getContext('2d');
+  const g = sc.createRadialGradient(48, 48, 6, 48, 48, 46);
+  g.addColorStop(0, 'rgba(170,195,255,0.55)'); g.addColorStop(0.5, 'rgba(140,170,255,0.18)'); g.addColorStop(1, 'rgba(120,150,255,0)');
+  sc.fillStyle = g; sc.fillRect(0, 0, 96, 96);
+  sc.strokeStyle = 'rgba(200,215,255,0.9)'; sc.lineWidth = 1.5; sc.strokeRect(30, 30, 36, 36);
+  sc.fillStyle = 'rgba(160,190,255,0.16)'; sc.fillRect(30, 30, 36, 36);
+  let last = performance.now();
+  function fit() { cv.width = innerWidth; cv.height = innerHeight; }
+  addEventListener('resize', fit); fit();
+  function tick(now) {
+    requestAnimationFrame(tick);
+    if ($('#game') && !$('#game').hidden) return; // во время игры фон не рисуем
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const w = cv.width, h = cv.height;
+    ctx.clearRect(0, 0, w, h);
+    const grd = ctx.createRadialGradient(w * 0.5, h * 1.1, 10, w * 0.5, h * 1.1, h * 0.9);
+    grd.addColorStop(0, 'rgba(40,60,140,0.35)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
+    cubes.forEach((c) => {
+      c.y -= c.v * dt; c.r += c.w * dt;
+      if (c.y < -0.15) { c.y = 1.15; c.x = Math.random(); }
+      const px = c.x * w, py = c.y * h, size = c.s * (1 + c.d * 0.6);
+      ctx.save(); ctx.translate(px, py); ctx.rotate(c.r); ctx.globalAlpha = c.a * (c.y < 0.1 ? c.y / 0.1 : 1);
+      ctx.drawImage(sprite, -size * 1.4, -size * 1.4, size * 2.8, size * 2.8);
+      ctx.restore();
+    });
+    ctx.globalAlpha = 1;
   }
-  for (let i = 0; i < 3; i++) { const st = document.createElement('div'); st.className = 'streak'; st.style.cssText = `top:${30 + i * 20}%;animation-delay:${-i * 3}s`; fx.append(st); }
+  requestAnimationFrame(tick);
 })();
 
 function show(screen) {
@@ -73,7 +105,7 @@ async function boot() {
   const tiles = mountGameTiles($('#game-tiles'), [...GAMES, { id: 'random', title: 'Случайная', description: 'Игра выбирается сама, каждый день по-разному.', preview: randomPreview }], {
     onSelect: (id, go, g) => {
       localStorage.setItem('dp:game', id);
-      if (g) $('#game-desc').textContent = (g.description || '') + (g.duration ? ` Около ${g.duration} секунд.` : '');
+      if (g) $('#game-desc').textContent = g.description || '';
       if (go) start();
     },
   });
@@ -130,7 +162,7 @@ async function boot() {
   function setState(s) { state = s; updateStart(); }
 
   // ---------- Холст ----------
-  const fit = () => { canvas.width = $('#game').clientWidth; canvas.height = $('#game').clientHeight; };
+  const fit = () => { const g = $('#game'); if (g.hidden || !g.clientWidth) return; canvas.width = g.clientWidth; canvas.height = g.clientHeight; };
   new ResizeObserver(fit).observe($('#game'));
 
   // ---------- Старт ----------
@@ -165,6 +197,7 @@ async function boot() {
     const memo = lastFirstName(payload.orderIds);
     await preload(ordered.map((p) => p.person));
     show('game'); fit();
+    await new Promise((r) => requestAnimationFrame(r)); fit();
     $('#hud-title').textContent = game.title;
     setState('countdown');
     await countdown(payload.startAt, true);
@@ -217,6 +250,7 @@ async function boot() {
   syncButtons();
 
   // ---------- Данные ----------
+  preload(NPCS);
   if (room) applyRoom(room);
   try {
     await db.measureClock();

@@ -1,6 +1,6 @@
 import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js';
 import { mulberry32 } from '../rng.js';
-import { label, makeParticles } from './scene.js';
+import { label, makeParticles, drawNpcBust } from './scene.js';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];
@@ -20,14 +20,29 @@ function drawHall(ctx, w, h, floorY, t, lightning, dim) {
   for (let i = 0; i < 24; i++) { const rx = wx + ((i * 37 + t * 60) % ww), ry = wy + ((i * 53 + t * 260) % wh); ctx.fillRect(rx, ry, 1, 8); }
   ctx.fillStyle = '#3a2a1e'; ctx.fillRect(wx - 8, wy - 8, ww + 16, 8); ctx.fillRect(wx - 8, wy, 8, wh + 8); ctx.fillRect(wx + ww, wy, 8, wh + 8); ctx.fillRect(wx - 8, wy + wh, ww + 16, 8);
   ctx.fillRect(wx + ww / 2 - 3, wy, 6, wh); ctx.fillRect(wx, wy + wh / 2 - 3, ww, 6);
-  // портреты, у которых глаза следят
-  [[w * 0.14, floorY * 0.2], [w * 0.8, floorY * 0.18]].forEach(([px, py], i) => {
-    ctx.fillStyle = '#5a4020'; ctx.fillRect(px - 6, py - 6, 72, 92);
-    ctx.fillStyle = '#20242c'; ctx.fillRect(px, py, 60, 80);
-    ctx.fillStyle = '#6a6470'; ctx.fillRect(px + 18, py + 14, 24, 28); ctx.fillRect(px + 10, py + 44, 40, 36);
-    const ex = Math.round(Math.sin(t * 0.7 + i) * 2);
-    ctx.fillStyle = '#ff3030'; ctx.fillRect(px + 22 + ex, py + 24, 4, 3); ctx.fillRect(px + 34 + ex, py + 24, 4, 3);
+  // портреты предков в золочёных рамах, глаза светятся красным
+  [[w * 0.12, floorY * 0.16, 9], [w * 0.8, floorY * 0.14, 10], [w * 0.3, floorY * 0.12, 11], [w * 0.62, floorY * 0.12, 12]].forEach(([px, py, npc], i) => {
+    ctx.fillStyle = '#7a5a20'; ctx.fillRect(px - 8, py - 8, 80, 100);
+    ctx.fillStyle = '#c9a23a'; ctx.fillRect(px - 5, py - 5, 74, 94);
+    ctx.fillStyle = '#20242c'; ctx.fillRect(px, py, 64, 84);
+    ctx.save(); ctx.globalAlpha = 0.85; ctx.filter = 'grayscale(1) contrast(1.1)'; drawNpcBust(ctx, npc, px, py + 8, 1, 36); ctx.restore();
+    ctx.fillStyle = 'rgba(20,10,30,0.45)'; ctx.fillRect(px, py, 64, 84);
+    if (Math.floor(t * 1.3 + i) % 4 === 0) { ctx.fillStyle = '#ff3030'; ctx.fillRect(px + 25, py + 24, 4, 3); ctx.fillRect(px + 35, py + 24, 4, 3); }
   });
+  // паутина в углах, трещины, напольные часы с маятником
+  ctx.strokeStyle = 'rgba(220,220,240,0.35)'; ctx.lineWidth = 1;
+  [[0, floorY * 0.2, 1], [w, floorY * 0.2, -1]].forEach(([cx0, cy0, dir]) => {
+    for (let r = 20; r <= 80; r += 20) { ctx.beginPath(); ctx.moveTo(cx0, cy0 + r); ctx.lineTo(cx0 + dir * r, cy0); ctx.stroke(); }
+    for (let a = 0; a < 4; a++) { ctx.beginPath(); ctx.moveTo(cx0, cy0); ctx.lineTo(cx0 + dir * Math.cos(a * 0.5) * 80, cy0 + Math.sin(a * 0.5) * 80); ctx.stroke(); }
+  });
+  ctx.fillStyle = '#1a1020'; ctx.fillRect(w * 0.9, floorY * 0.4, 2, floorY * 0.2); ctx.fillRect(w * 0.9, floorY * 0.6, 14, 2); ctx.fillRect(w * 0.91, floorY * 0.62, 2, floorY * 0.1);
+  const clx = w * 0.06, cly = floorY * 0.42;
+  ctx.fillStyle = '#3a2618'; ctx.fillRect(clx, cly, 46, floorY * 0.58 + 12);
+  ctx.fillStyle = '#5a3a24'; ctx.fillRect(clx + 4, cly + 4, 38, 40);
+  ctx.fillStyle = '#e8e0c0'; ctx.fillRect(clx + 9, cly + 9, 28, 28); ctx.fillStyle = '#222'; ctx.fillRect(clx + 22, cly + 14, 2, 10); ctx.fillRect(clx + 22, cly + 22, 8, 2);
+  ctx.fillStyle = '#1a1020'; ctx.fillRect(clx + 8, cly + 50, 30, floorY * 0.58 - 46);
+  const pend = Math.sin(t * 2.4) * 10;
+  ctx.fillStyle = '#c9a23a'; ctx.fillRect(clx + 22 + pend * 0.5, cly + 52, 2, 60); ctx.fillRect(clx + 17 + pend, cly + 108, 12, 12);
   // свечи в канделябрах
   [w * 0.3, w * 0.7].forEach((cx, i) => {
     ctx.fillStyle = '#6a5a30'; ctx.fillRect(cx - 2, floorY * 0.42, 4, 40); ctx.fillRect(cx - 20, floorY * 0.42, 40, 4);
@@ -37,6 +52,10 @@ function drawHall(ctx, w, h, floorY, t, lightning, dim) {
       if (!dim) { ctx.fillStyle = `rgba(255,170,60,${0.08 * fl})`; ctx.fillRect(cx + dx - 26, floorY * 0.42 - 60, 52, 70); ctx.fillStyle = '#ffb040'; ctx.fillRect(cx + dx - 2, floorY * 0.42 - 22 - fl * 3, 4, 6 + fl * 3); }
     });
   });
+  // крыса бежит вдоль плинтуса, при молнии летучие мыши
+  const rx = ((t * 90) % (w + 60)) - 30;
+  ctx.fillStyle = '#2a2230'; ctx.fillRect(rx, floorY - 8, 14, 6); ctx.fillRect(rx - 8, floorY - 5, 8, 2); ctx.fillRect(rx + 12, floorY - 10, 5, 4);
+  if (lightning) { ctx.fillStyle = '#0a0610'; for (let b = 0; b < 6; b++) { const bx = (b * 173 + t * 500) % w, by = floorY * (0.1 + (b % 3) * 0.1); ctx.fillRect(bx, by, 6, 3); ctx.fillRect(bx - 8, by - 3, 8, 3); ctx.fillRect(bx + 6, by - 3, 8, 3); } }
   // паркет
   ctx.fillStyle = '#3a2618'; ctx.fillRect(0, floorY, w, h - floorY);
   ctx.fillStyle = '#2c1c12';
@@ -60,7 +79,7 @@ function drawChandelier(ctx, cx, y, drop) {
 export default {
   id: 'horror',
   title: 'Особняк',
-  description: 'Команда заперта в старом доме. Каждый раунд дом забирает кого-то: руки из пола, призрак, люстра, темнота. Кто выжил, тот и первый.',
+  description: 'Старый особняк заперт на ночь, и дом забирает команду по одному, пока не останется тот, кому говорить первым.',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,

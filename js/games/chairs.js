@@ -1,6 +1,6 @@
 import { spriteCanvas, SPRITE_W } from '../sprite.js';
 import { mulberry32 } from '../rng.js';
-import { label, makeParticles } from './scene.js';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc } from './scene.js';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';
@@ -41,47 +41,59 @@ function drawRider(ctx, person, x, y, scale, kick, tilt) {
 }
 
 function drawCorridor(ctx, w, h, camX, t, floorY) {
-  // потолок с лампами
-  ctx.fillStyle = '#c8c4b8'; ctx.fillRect(0, 0, w, floorY * 0.18);
-  ctx.fillStyle = '#f8f8f0';
-  for (let x = -((camX * 0.5) % 260) - 260; x < w; x += 260) ctx.fillRect(x + 40, floorY * 0.1, 140, 8);
-  // стена, окна и двери
-  ctx.fillStyle = WALL; ctx.fillRect(0, floorY * 0.18, w, floorY * 0.82);
-  ctx.fillStyle = WALL2; ctx.fillRect(0, floorY * 0.18, w, 6); ctx.fillRect(0, floorY - 10, w, 10);
+  // потолок: плиты, лампы, вентиляция
+  ctx.fillStyle = '#d6d2c6'; ctx.fillRect(0, 0, w, floorY * 0.2);
+  ctx.fillStyle = '#c4c0b4'; for (let x = -((camX * 0.5) % 60); x < w; x += 60) ctx.fillRect(x, 0, 2, floorY * 0.2); for (let y = 0; y < floorY * 0.2; y += 30) ctx.fillRect(0, y, w, 2);
+  for (let x = -((camX * 0.5) % 260) - 260; x < w; x += 260) {
+    ctx.fillStyle = 'rgba(255,255,240,0.18)'; ctx.fillRect(x + 20, floorY * 0.12, 180, floorY * 0.5);
+    ctx.fillStyle = '#fbfbf2'; ctx.fillRect(x + 40, floorY * 0.1, 140, 8);
+    ctx.fillStyle = '#9a9a90'; ctx.fillRect(x + 210, floorY * 0.06, 30, 10); ctx.fillStyle = '#7a7a70'; for (let k = 0; k < 4; k++) ctx.fillRect(x + 212, floorY * 0.06 + 2 + k * 2, 26, 1);
+  }
+  // стена: стеклянные перегородки с опенспейсом, двери, доска, кулер, принтер
+  ctx.fillStyle = WALL; ctx.fillRect(0, floorY * 0.2, w, floorY * 0.8);
+  ctx.fillStyle = WALL2; ctx.fillRect(0, floorY * 0.2, w, 6); ctx.fillRect(0, floorY - 10, w, 10);
+  ctx.fillStyle = '#c8c2b0'; ctx.fillRect(0, floorY * 0.62, w, 3);
   const rnd = mulberry32(21);
-  for (let x = -((camX * 0.5) % 320) - 320; x < w; x += 320) {
+  let seg = 0;
+  for (let x = -((camX * 0.5) % 420) - 420; x < w; x += 420, seg++) {
     const kind = Math.floor(rnd() * 3);
-    if (kind === 0) { // окно с городом
-      ctx.fillStyle = '#7fb0e0'; ctx.fillRect(x + 30, floorY * 0.28, 120, floorY * 0.35);
-      ctx.fillStyle = '#4a6a9a'; for (let i = 0; i < 4; i++) ctx.fillRect(x + 40 + i * 28, floorY * 0.42 + (i % 2) * 14, 18, floorY * 0.21 - (i % 2) * 14);
-      ctx.fillStyle = '#fff'; ctx.fillRect(x + 88, floorY * 0.28, 4, floorY * 0.35); ctx.fillRect(x + 30, floorY * 0.45, 120, 4);
-    } else if (kind === 1) { // дверь кабинета
+    if (kind === 0) {
+      // опенспейс за стеклом: столы, мониторы, коллеги
+      ctx.fillStyle = '#e9f1f7'; ctx.fillRect(x + 20, floorY * 0.26, 260, floorY * 0.6);
+      ctx.fillStyle = '#b9c8d6'; ctx.fillRect(x + 20, floorY * 0.26, 260, 4); ctx.fillRect(x + 148, floorY * 0.26, 4, floorY * 0.6);
+      drawDesk(ctx, x + 30, floorY * 0.84, 1, seg * 3 + 1, t); drawDesk(ctx, x + 160, floorY * 0.84, 1, seg * 3 + 2, t);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 30, floorY * 0.28, 40, floorY * 0.56);
+    } else if (kind === 1) {
+      // дверь кабинета с табличкой и выходом
       ctx.fillStyle = '#8a6a4a'; ctx.fillRect(x + 60, floorY * 0.3, 70, floorY * 0.7);
       ctx.fillStyle = '#6a4a2a'; ctx.fillRect(x + 66, floorY * 0.34, 58, floorY * 0.62);
       ctx.fillStyle = '#e0c060'; ctx.fillRect(x + 114, floorY * 0.62, 6, 6);
-    } else { // плакат и доска
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 40, floorY * 0.3, 90, 60);
-      ctx.fillStyle = '#ff6b6b'; ctx.fillRect(x + 48, floorY * 0.3 + 8, 74, 12);
-      ctx.fillStyle = '#3c8cdc'; ctx.fillRect(x + 48, floorY * 0.3 + 26, 40, 8); ctx.fillRect(x + 48, floorY * 0.3 + 40, 60, 8);
+      ctx.fillStyle = '#f4f4f4'; ctx.fillRect(x + 72, floorY * 0.4, 46, 12); ctx.fillStyle = '#333'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2B', x + 84, floorY * 0.4 + 3);
+      ctx.fillStyle = '#21a038'; ctx.fillRect(x + 150, floorY * 0.24, 40, 14); ctx.fillStyle = '#fff'; ctx.fillText('EXIT', x + 154, floorY * 0.24 + 4);
+      drawNpc(ctx, seg + 5, 'back', x + 220, floorY - 64 * 1.6 + 4, 1.6);
+      ctx.fillStyle = '#c0d8f0'; ctx.fillRect(x + 300, floorY * 0.55, 26, 34); ctx.fillStyle = '#f0f0f0'; ctx.fillRect(x + 298, floorY * 0.55 + 34, 30, floorY * 0.45 - 34); ctx.fillStyle = '#3c8cdc'; ctx.fillRect(x + 306, floorY * 0.55 + 42, 6, 6);
+    } else {
+      // доска с заметками, кофемашина, огнетушитель, часы
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x + 40, floorY * 0.3, 110, 70); ctx.fillStyle = '#c8c8c8'; ctx.fillRect(x + 40, floorY * 0.3, 110, 3);
+      [['#ff6b6b', 48, 8], ['#3c8cdc', 74, 12], ['#ffd166', 100, 6], ['#6ec85a', 60, 36], ['#ff8c42', 96, 40]].forEach(([c, dx, dy]) => { ctx.fillStyle = c; ctx.fillRect(x + dx, floorY * 0.3 + dy, 22, 22); });
+      ctx.fillStyle = '#21a038'; ctx.fillRect(x + 124, floorY * 0.3 + 40, 20, 20); ctx.fillStyle = '#fff'; ctx.fillRect(x + 128, floorY * 0.3 + 46, 12, 3);
+      ctx.fillStyle = '#2a2a30'; ctx.fillRect(x + 200, floorY * 0.6, 40, 50); ctx.fillStyle = '#ff5050'; ctx.fillRect(x + 206, floorY * 0.6 + 8, 6, 6); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 214, floorY * 0.6 + 30, 14, 10);
+      ctx.fillStyle = '#d02020'; ctx.fillRect(x + 280, floorY * 0.7, 14, 34); ctx.fillStyle = '#222'; ctx.fillRect(x + 284, floorY * 0.7 - 6, 6, 8);
+      ctx.fillStyle = '#f4f4f4'; ctx.fillRect(x + 340, floorY * 0.28, 34, 34); ctx.fillStyle = '#222'; ctx.fillRect(x + 356, floorY * 0.28 + 6, 2, 12); ctx.fillRect(x + 356, floorY * 0.28 + 17, 9, 2);
+      drawPlant(ctx, x + 380, floorY, 1);
     }
-    // реквизит у стены: кулер, фикус, принтер
-    const prop = Math.floor(rnd() * 3);
-    const px = x + 210;
-    if (prop === 0) { ctx.fillStyle = '#c0d8f0'; ctx.fillRect(px, floorY * 0.55, 26, 34); ctx.fillStyle = '#f0f0f0'; ctx.fillRect(px - 2, floorY * 0.55 + 34, 30, floorY * 0.45 - 34); ctx.fillStyle = '#3c8cdc'; ctx.fillRect(px + 6, floorY * 0.55 + 42, 6, 6); }
-    else if (prop === 1) { ctx.fillStyle = '#b06a3a'; ctx.fillRect(px + 4, floorY * 0.8, 22, floorY * 0.2); ctx.fillStyle = '#3c9a3c'; ctx.fillRect(px - 8, floorY * 0.5, 46, floorY * 0.3); ctx.fillStyle = '#58b858'; ctx.fillRect(px, floorY * 0.44, 28, 20); }
-    else { ctx.fillStyle = '#d0d0d0'; ctx.fillRect(px, floorY * 0.72, 44, 22); ctx.fillStyle = '#a0a0a0'; ctx.fillRect(px, floorY * 0.72 + 22, 44, floorY * 0.28 - 22); ctx.fillStyle = '#58b858'; ctx.fillRect(px + 34, floorY * 0.72 + 6, 4, 4); }
   }
-  // ковролин с полосками
+  // ковролин с полосками и тенью от стены
   ctx.fillStyle = CARPET; ctx.fillRect(0, floorY, w, h - floorY);
-  ctx.fillStyle = CARPET2;
-  for (let x = -((camX) % 40) - 40; x < w; x += 40) ctx.fillRect(x, floorY, 20, h - floorY);
+  ctx.fillStyle = CARPET2; for (let x = -((camX) % 40) - 40; x < w; x += 40) ctx.fillRect(x, floorY, 20, h - floorY);
   ctx.fillStyle = '#2c3a54'; for (let y = floorY; y < h; y += 26) ctx.fillRect(0, y, w, 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(0, floorY, w, 10);
 }
 
 export default {
   id: 'chairs',
   title: 'Гонки на стульях',
-  description: 'Офисный коридор, кресла на колёсиках, финиш в переговорке. Кто вкатился первым, тот первым говорит.',
+  description: 'Безумный заезд на офисных креслах по коридору, где на кону не кубок, а первое слово на дейлике.',
   duration: 13,
   minPlayers: 2,
   maxPlayers: 20,

@@ -1,28 +1,39 @@
 import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js';
 import { mulberry32 } from '../rng.js';
-import { label, makeParticles } from './scene.js';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc } from './scene.js';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
-function drawShaft(ctx, w, h, cabX, cabW, offset) {
-  // здание в разрезе: этажи проезжают вниз
+function drawShaft(ctx, w, h, cabX, cabW, offset, t) {
+  // здание в разрезе: этажи с кабинетами проезжают вниз
   ctx.fillStyle = '#1c1a2a'; ctx.fillRect(0, 0, w, h);
-  const floorH = 150;
+  const floorH = 170;
   const rnd = mulberry32(31);
-  for (let y = -floorH + (offset % floorH); y < h + floorH; y += floorH) {
+  const base = Math.floor(offset / floorH);
+  for (let k = -1; k < h / floorH + 2; k++) {
+    const y = -floorH + (offset % floorH) + k * floorH;
+    const fl = base - k;
+    const rr = mulberry32(31 + ((fl % 7) + 7) % 7);
     ctx.fillStyle = '#2c2a3e'; ctx.fillRect(0, y, w, floorH);
-    ctx.fillStyle = '#3c3a52'; ctx.fillRect(0, y + floorH - 10, w, 10);
-    // окна офисов слева и справа от шахты
-    for (let x = 30; x < w - 40; x += 70) {
-      if (x + 50 > cabX - 30 && x < cabX + cabW + 30) continue;
-      ctx.fillStyle = rnd() < 0.6 ? '#f0d890' : '#3a4a6a'; ctx.fillRect(x, y + 30, 40, 50);
-      ctx.fillStyle = '#5a6a8a'; ctx.fillRect(x + 6, y + 60, 28, 20);
-    }
+    ctx.fillStyle = '#3c3a52'; ctx.fillRect(0, y + floorH - 12, w, 12);
+    ctx.fillStyle = '#24223a'; ctx.fillRect(0, y, w, 8);
+    // комнаты слева и справа от шахты
+    [[20, cabX - 44], [cabX + cabW + 44, w - 20]].forEach(([x0, x1], side) => {
+      if (x1 - x0 < 120) return;
+      ctx.fillStyle = rr() < 0.7 ? '#e6e0d2' : '#d8e4ee'; ctx.fillRect(x0, y + 16, x1 - x0, floorH - 40);
+      ctx.fillStyle = '#c9c2b2'; ctx.fillRect(x0, y + 16, x1 - x0, 4);
+      let dx = x0 + 10;
+      while (dx + 100 < x1) { drawDesk(ctx, dx, y + floorH - 26, 1, Math.abs(fl * 5 + side * 3 + Math.floor(dx / 100)), t); dx += 120; }
+      if (rr() < 0.5) drawPlant(ctx, x1 - 40, y + floorH - 26, 1);
+      ctx.fillStyle = '#7fb0e0'; ctx.fillRect(x0 + 10, y + 28, 50, 34); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + 34, y + 28, 2, 34); ctx.fillRect(x0 + 10, y + 44, 50, 2);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x0 + 70, y + 30, 46, 14); ctx.fillStyle = '#222'; ctx.font = "6px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('ЭТАЖ ' + Math.max(1, fl), x0 + 73, y + 34);
+    });
   }
-  // шахта
-  ctx.fillStyle = '#121020'; ctx.fillRect(cabX - 24, 0, cabW + 48, h);
-  ctx.fillStyle = '#26243a'; ctx.fillRect(cabX - 24, 0, 6, h); ctx.fillRect(cabX + cabW + 18, 0, 6, h);
-  ctx.fillStyle = '#3a3850';
-  for (let y = -40 + (offset % 40); y < h; y += 40) { ctx.fillRect(cabX - 18, y, 12, 4); ctx.fillRect(cabX + cabW + 6, y, 12, 4); }
+  // шахта: направляющие, тросы, противовес
+  ctx.fillStyle = '#121020'; ctx.fillRect(cabX - 30, 0, cabW + 60, h);
+  ctx.fillStyle = '#2e2c44'; ctx.fillRect(cabX - 30, 0, 8, h); ctx.fillRect(cabX + cabW + 22, 0, 8, h);
+  ctx.fillStyle = '#3a3850'; for (let y = -40 + (offset % 40); y < h; y += 40) { ctx.fillRect(cabX - 22, y, 12, 4); ctx.fillRect(cabX + cabW + 10, y, 12, 4); }
+  ctx.fillStyle = '#6a6a7a'; ctx.fillRect(cabX + cabW / 2 - 6, 0, 2, h); ctx.fillRect(cabX + cabW / 2 + 4, 0, 2, h);
+  ctx.fillStyle = '#4a4a5a'; ctx.fillRect(cabX + cabW + 4, ((offset * -1.3) % (h + 200)) + 100, 14, 60);
 }
 
 function drawCabin(ctx, x, y, cw, ch, doorsOpen, alarm, lobbyText, t) {
@@ -56,7 +67,7 @@ function drawCabinFront(ctx, x, y, cw, ch, doorsOpen, alarm, t, floorNo) {
 export default {
   id: 'elevator',
   title: 'Лифт',
-  description: 'Все едут на совещание. На каждом этаже перегруз, и кого-то высаживают. Кто доехал, тот первый.',
+  description: 'Перегруженный лифт ползёт на совещание, и на каждом этаже кому-то придётся выйти раньше времени.',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,
@@ -64,7 +75,7 @@ export default {
   preview(ctx, w, h, t, people) {
     ctx.imageSmoothingEnabled = false;
     const cw = 120, ch = 110, x = w / 2 - cw / 2, y = h - ch - 30;
-    drawShaft(ctx, w, h, x, cw, t * 60);
+    drawShaft(ctx, w, h, x, cw, t * 60, t);
     ctx.fillStyle = '#c8c8d8'; ctx.fillRect(x, y, cw, ch);
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, 'idle', x + 8 + i * 36, y + ch - SPRITE_H * 2 - 8 + Math.sin(t * 8 + i) * 1.5, 2));
     drawCabinFront(ctx, x, y, cw, ch, Math.max(0, Math.sin(t * 1.2)) * 0.9, Math.floor(t / 2) % 3 === 0, t, 1 + Math.floor(t) % 9);
@@ -118,13 +129,20 @@ export default {
       const offset = moving ? t * 260 : (rounds.reduce((acc, r) => acc + Math.min(Math.max((t - r.at) / k, 0), drive), 0) + Math.min(t, 0.8)) * 260;
 
       ctx.imageSmoothingEnabled = false;
-      drawShaft(ctx, w, h, x, cw, offset);
+      drawShaft(ctx, w, h, x, cw, offset, t);
       // интерьер кабины
       const shake = alarm ? Math.round((rnd() - 0.5) * 6) : 0;
       ctx.save(); ctx.translate(shake, 0);
       if (doors > 0) drawCabin(ctx, x, y, cw, ch, doors, alarm, finale ? 'ПЕРЕГОВОРКА' : `ЭТАЖ ${floorNo}`, t);
-      ctx.fillStyle = '#bdbdd0'; if (doors === 0) ctx.fillRect(x, y, cw, ch);
-      if (doors === 0) { ctx.fillStyle = '#a8a8bc'; ctx.fillRect(x + 10, y + 10, cw - 20, ch * 0.45); ctx.fillStyle = '#8a8a9c'; ctx.fillRect(x + cw - 30, y + ch * 0.3, 14, 40); }
+      if (doors === 0) {
+        ctx.fillStyle = '#bdbdd0'; ctx.fillRect(x, y, cw, ch);
+        ctx.fillStyle = '#9fb4c8'; ctx.fillRect(x + 12, y + 12, cw - 24, ch * 0.5);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x + 20, y + 16, 18, ch * 0.44);
+        ctx.fillStyle = '#8a8a9c'; ctx.fillRect(x + 12, y + ch * 0.66, cw - 24, 5);
+        ctx.fillStyle = '#5a5a6c'; ctx.fillRect(x + cw - 34, y + ch * 0.28, 20, 62);
+        for (let b = 0; b < 8; b++) { ctx.fillStyle = (b === (floorNo - 1) % 8) ? '#ffb040' : '#d0d0dc'; ctx.fillRect(x + cw - 30 + (b % 2) * 9, y + ch * 0.28 + 6 + Math.floor(b / 2) * 13, 6, 6); }
+        ctx.fillStyle = '#c9c9d8'; ctx.fillRect(x, y + ch - 10, cw, 10);
+      }
       // люди внутри
       const inside = participants.filter((p) => !out.has(p.id));
       const drawOrder = [...participants].sort((a, b) => (a._row || 0) - (b._row || 0));

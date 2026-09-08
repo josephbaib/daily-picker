@@ -8,7 +8,7 @@ const cache = new Map();
 export function skyLayer(w, h, stops, px = 4, key = 'sky') {
   const k = `${key}:${w}x${h}`;
   if (cache.has(k)) return cache.get(k);
-  const sw = Math.ceil(w / px), sh = Math.ceil(h / px);
+  const sw = Math.max(1, Math.ceil(w / px)), sh = Math.max(1, Math.ceil(h / px));
   const off = document.createElement('canvas'); off.width = sw; off.height = sh;
   const c = off.getContext('2d');
   const img = c.createImageData(sw, sh);
@@ -90,4 +90,75 @@ export function makeParticles() {
     },
     get length() { return list.length; },
   };
+}
+
+// ---------- Статисты и реквизит для детализации сцен ----------
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js';
+import { mulberry32 as seededRnd } from '../rng.js';
+
+export const NPC_COUNT = 16;
+export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
+
+export function drawNpc(ctx, i, frame, x, y, scale = 2, flip = false) {
+  drawPerson(ctx, NPCS[((i % NPC_COUNT) + NPC_COUNT) % NPC_COUNT], frame, x, y, scale, flip);
+}
+
+// Голова и плечи статиста (для трибун, окон, портретов): верх кадра анфас.
+export function drawNpcBust(ctx, i, x, y, scale = 2, rows = 34) {
+  const src = personCanvas(NPCS[((i % NPC_COUNT) + NPC_COUNT) % NPC_COUNT], 'idle', scale);
+  ctx.drawImage(src, 0, 0, PW * scale, rows * scale, Math.round(x), Math.round(y), PW * scale, rows * scale);
+}
+
+export function drawCloud(ctx, x, y, s, color = 'rgba(255,255,255,0.85)') {
+  ctx.fillStyle = color;
+  [[0, 0, 3, 1.4], [0.8, -0.8, 2.2, 1.6], [2, -0.4, 2.4, 1.5], [3.2, 0.2, 2, 1.1]].forEach(([dx, dy, w, h]) => ctx.fillRect(Math.round(x + dx * s), Math.round(y + dy * s), Math.round(w * s), Math.round(h * s)));
+}
+
+export function drawPlant(ctx, x, y, s = 1) {
+  ctx.fillStyle = '#b06a3a'; ctx.fillRect(x + 6 * s, y - 14 * s, 18 * s, 14 * s);
+  ctx.fillStyle = '#8a4e28'; ctx.fillRect(x + 6 * s, y - 14 * s, 18 * s, 3 * s);
+  ctx.fillStyle = '#2f8a3a'; ctx.fillRect(x, y - 34 * s, 30 * s, 20 * s);
+  ctx.fillStyle = '#3fae4a'; ctx.fillRect(x + 4 * s, y - 42 * s, 10 * s, 12 * s); ctx.fillRect(x + 16 * s, y - 40 * s, 10 * s, 10 * s);
+  ctx.fillStyle = '#227a2c'; ctx.fillRect(x + 10 * s, y - 24 * s, 12 * s, 8 * s);
+}
+
+// Рабочий стол с монитором и сотрудником за ним (анфас, виден по пояс).
+export function drawDesk(ctx, x, y, s, npc, t) {
+  drawNpcBust(ctx, npc, x + 18 * s, y - 52 * s, s, 30);
+  ctx.fillStyle = '#c9b89a'; ctx.fillRect(x, y - 20 * s, 96 * s, 6 * s);
+  ctx.fillStyle = '#a58f6e'; ctx.fillRect(x, y - 14 * s, 96 * s, 3 * s);
+  ctx.fillStyle = '#8a775a'; ctx.fillRect(x + 6 * s, y - 11 * s, 6 * s, 11 * s); ctx.fillRect(x + 84 * s, y - 11 * s, 6 * s, 11 * s);
+  ctx.fillStyle = '#1d2230'; ctx.fillRect(x + 54 * s, y - 46 * s, 34 * s, 24 * s);
+  ctx.fillStyle = (Math.floor(t * 2 + npc) % 5 === 0) ? '#2b7ad6' : '#3aa0ff'; ctx.fillRect(x + 57 * s, y - 43 * s, 28 * s, 18 * s);
+  ctx.fillStyle = '#dfe8ff'; ctx.fillRect(x + 60 * s, y - 40 * s, 14 * s, 2 * s); ctx.fillRect(x + 60 * s, y - 35 * s, 20 * s, 2 * s); ctx.fillRect(x + 60 * s, y - 30 * s, 10 * s, 2 * s);
+  ctx.fillStyle = '#5a6070'; ctx.fillRect(x + 68 * s, y - 22 * s, 6 * s, 3 * s);
+  ctx.fillStyle = '#e8e8f0'; ctx.fillRect(x + 20 * s, y - 24 * s, 26 * s, 3 * s);
+  ctx.fillStyle = '#f0f0f0'; ctx.fillRect(x + 6 * s, y - 30 * s, 8 * s, 10 * s); ctx.fillStyle = '#7a4a2a'; ctx.fillRect(x + 7 * s, y - 27 * s, 6 * s, 5 * s);
+}
+
+export function drawFlag(ctx, x, y, t, color, text) {
+  ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x, y, 3, 70);
+  ctx.fillStyle = color;
+  for (let i = 0; i < 40; i += 2) { const dy = Math.sin(t * 6 + i * 0.25) * 3; ctx.fillRect(x + 3 + i, y + 2 + dy, 2, 22); }
+  if (text) { ctx.fillStyle = '#111'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText(text, x + 6, y + 9); }
+}
+
+// Трибуна: ряды сидений с болельщиками, волна бежит по времени.
+export function drawStands(ctx, x0, yTop, w, rows, t, camX, scale = 2) {
+  const seatW = 34 * scale, rowH = 30 * scale;
+  const rnd = seededRnd(77);
+  const colors = ['#d94b3d', '#3c8cdc', '#f0be3c', '#2bd4c8', '#9650c8', '#78c85a'];
+  for (let r = rows - 1; r >= 0; r--) {
+    const y = yTop + r * rowH;
+    ctx.fillStyle = r % 2 ? '#3b3450' : '#443c5c'; ctx.fillRect(x0, y, w, rowH);
+    ctx.fillStyle = '#2c2740'; ctx.fillRect(x0, y + rowH - 4, w, 4);
+    const off = -((camX * (0.25 + r * 0.03)) % seatW);
+    for (let x = x0 + off - seatW; x < x0 + w + seatW; x += seatW) {
+      const idx = Math.abs(Math.floor((x - off) / seatW)) + r * 7;
+      const wave = Math.sin(t * 2.2 - (x - off) / 160 + r) > 0.85 ? -8 * scale / 2 : 0;
+      ctx.fillStyle = colors[idx % colors.length]; ctx.fillRect(x + 4 * scale, y + 14 * scale, seatW - 8 * scale, 12 * scale);
+      const bob = Math.round(Math.sin(t * 5 + idx) * 1.5) + wave;
+      drawNpcBust(ctx, idx, x + 1 * scale, y - 10 * scale + bob, scale, 32);
+    }
+  }
 }

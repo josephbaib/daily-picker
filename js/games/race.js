@@ -43,12 +43,14 @@ export default {
       const leader = Math.max(...ps);
       const camX = Math.max(0, Math.min(finishX + 160 - w, startX + leader * L - w * 0.62));
 
+      ctx.fillStyle = theme.colors.bg; ctx.fillRect(0, 0, w, h);
       theme.drawSky(ctx, w, horizon, camX);
       ctx.imageSmoothingEnabled = false;
       for (let i = 0; i < n; i++) {
-        const laneTop = horizon + i * laneH;
+        const laneTop = Math.round(horizon + i * laneH);
         const groundY = Math.round(laneTop + laneH * 0.62);
-        theme.drawGround(ctx, groundY, w, laneH - (groundY - laneTop) + 8, camX);
+        if (i > 0) { ctx.fillStyle = '#1c1430'; ctx.fillRect(0, laneTop, w, groundY - laneTop); }
+        theme.drawGround(ctx, groundY, w, Math.round(laneTop + laneH) - groundY + 8, camX);
         for (let tx = 400 - (Math.floor(camX) % 400); tx < w; tx += 400) if (i === 0) theme.drawTorch(ctx, tx, groundY, now / 1000);
         theme.drawFinish(ctx, Math.round(finishX - camX), groundY, Math.min(64, laneH * 0.9));
       }
@@ -57,6 +59,7 @@ export default {
         const laneTop = horizon + i * laneH;
         const groundY = Math.round(laneTop + laneH * 0.62);
         const x = Math.round(startX + ps[i] * L - camX);
+        if (x + sprW < -80 || x > w + 80) return;
         const y = groundY - sprH + 2;
         const moving = t < 1;
         const fr = moving ? 1 + (Math.floor(time * 9 + i) % 2) : 0;

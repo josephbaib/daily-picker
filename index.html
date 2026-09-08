@@ -5,44 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Дейлик: кто говорит</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Press+Start+2P&display=swap">
   <link rel="stylesheet" href="css/app.css">
 </head>
-<body data-state="idle">
-  <div id="room-form" hidden>
+<body>
+  <div id="room-form" class="screen" hidden>
     <form>
       <h1>Дейлик: кто говорит</h1>
       <p>Придумай имя комнаты для команды. Ссылка с ним будет постоянной.</p>
       <input placeholder="например, ba-team" maxlength="40" autofocus>
-      <button type="submit">Создать или открыть</button>
+      <button type="submit" class="play">Создать или открыть</button>
     </form>
   </div>
 
-  <div id="app">
-    <aside id="panel">
-      <div class="ptitle">Участники <span id="count"></span></div>
-      <div id="participants"></div>
-    </aside>
-    <main id="stage">
-      <header>
-        <button id="toggle-panel" title="Скрыть или показать участников">☰</button>
-        <span class="room">Комната: <b id="room-name"></b></span>
-        <select id="game"></select>
-        <button id="start" class="primary">Старт</button>
-        <span class="spacer"></span>
-        <button id="sound">Звук</button>
-        <button id="crt-toggle">ТВ</button>
-        <button id="copy">Ссылка</button>
-      </header>
-      <div id="scene">
-        <canvas id="canvas"></canvas>
-        <div id="overlay" hidden></div>
-        <div id="crt" hidden></div>
+  <div id="hub" class="screen" hidden>
+    <header class="topbar">
+      <div class="logo">Дейлик <span class="room" id="room-name"></span></div>
+      <div class="tools">
+        <button id="sound" class="chip">Звук</button>
+        <button id="crt-toggle" class="chip">ТВ</button>
+        <button id="copy" class="chip">Ссылка</button>
       </div>
-    </main>
+    </header>
+    <div class="hub-body">
+      <section class="team">
+        <h2>Команда <span id="count" class="sub"></span></h2>
+        <div id="team-grid" class="team-grid"></div>
+      </section>
+      <section class="games">
+        <h2>Игра <span class="sub">стрелки и Enter тоже работают</span></h2>
+        <div id="game-tiles" class="game-tiles"></div>
+        <div class="play-row">
+          <button id="start" class="play">Играть</button>
+          <div id="memo" class="memo"></div>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <div id="result" hidden></div>
+  <div id="game" class="screen" hidden>
+    <canvas id="canvas"></canvas>
+    <div id="hud"><span id="hud-title"></span><span id="hud-time"></span></div>
+    <div id="overlay" hidden></div>
+    <div id="crt" hidden></div>
+  </div>
+
+  <div id="result" class="screen" hidden></div>
   <div id="toast" hidden></div>
   <script type="module" src="js/app.js"></script>
 </body>

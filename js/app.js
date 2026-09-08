@@ -1,28 +1,14 @@
-import { avatarFor } from './avatar.js';
+import { personFor } from './sprite.js';
 import { computeOrder } from './order.js';
 import { randomSeed } from './rng.js';
 import { GAMES, gameById, pickGame } from './games/index.js';
-import { themeById } from './themes/index.js';
 import { sound } from './sound.js';
-import { mountParticipants } from './ui/participants.js';
+import { mountTeam, mountGameTiles } from './ui/hub.js';
 import { mountResult } from './ui/result.js';
 import * as db from './db.js';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
-
-// ---------- Экран «создай комнату» ----------
-if (!roomId) {
-  $('#room-form').hidden = false;
-  $('#app').hidden = true;
-  $('#room-form form').onsubmit = (e) => {
-    e.preventDefault();
-    const v = $('#room-form input').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    if (v) location.search = '?room=' + v;
-  };
-} else {
-  boot().catch((err) => { console.error(err); toast('Не удалось подключиться к базе: ' + (err.message || err)); });
-}
 
 function toast(text, ms = 4000) {
   const el = $('#toast');
@@ -30,159 +16,182 @@ function toast(text, ms = 4000) {
   clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, ms);
 }
 
-// ---------- Основной экран ----------
+function show(screen) {
+  ['room-form', 'hub', 'game', 'result'].forEach((id) => { $('#' + id).hidden = id !== screen; });
+  document.body.dataset.screen = screen;
+}
+
+if (!roomId) {
+  show('room-form');
+  $('#room-form form').onsubmit = (e) => {
+    e.preventDefault();
+    const v = $('#room-form input').value.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    if (v) location.search = '?room=' + v;
+  };
+} else {
+  boot().catch((err) => { console.error(err); toast('Ошибка: ' + (err.message || err)); });
+}
+
 async function boot() {
-  const theme = themeById('pixel16');
+  show('hub');
   const canvas = $('#canvas');
   const overlay = $('#overlay');
   const startBtn = $('#start');
-  const gameSel = $('#game');
-  let room = null;
-  let history = [];
-  let participants = []; // с аватарами
+  let room = null, history = [], participants = [], channel = null, running = null, lastPayload = null;
   let state = 'idle';
-  let running = null;
-  let channel = null;
   const seenGames = new Set();
 
   $('#room-name').textContent = roomId;
-  GAMES.forEach((g) => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.title; gameSel.append(o); });
-  const rnd = document.createElement('option'); rnd.value = 'random'; rnd.textContent = 'Случайная'; gameSel.append(rnd);
-  gameSel.value = localStorage.getItem('dp:game') || 'race';
-  gameSel.onchange = () => localStorage.setItem('dp:game', gameSel.value);
 
-  // Кэш на случай, если база недоступна.
-  const cacheKey = `dp:room:${roomId}`;
-  try { room = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (_) { room = null; }
-
-  const panel = mountParticipants($('#participants'), {
+  // ---------- Хаб ----------
+  const team = mountTeam($('#team-grid'), {
     onChange: async (next) => {
       applyRoom({ ...room, participants: next });
       try { await db.saveParticipants(roomId, next); } catch (e) { toast('Не сохранилось: ' + e.message); }
     },
   });
-  const result = mountResult($('#result'), { onClose: () => setState('idle') });
+  const tiles = mountGameTiles($('#game-tiles'), [...GAMES, { id: 'random', title: 'Случайная', description: 'Игра выбирается сама, каждый день по-разному.', preview: randomPreview }], {
+    onSelect: (id, go) => { localStorage.setItem('dp:game', id); if (go) start(); },
+  });
+  if (localStorage.getItem('dp:game')) tiles.select(localStorage.getItem('dp:game'));
+  const result = mountResult($('#result'), {
+    onAgain: () => { show('hub'); setState('idle'); start(); },
+    onMenu: () => { show('hub'); setState('idle'); },
+  });
 
-  // Имя первого в последней игре. exceptIds: игры, которые не считаем (например, только что сыгранную).
+  document.addEventListener('keydown', (e) => {
+    if (document.body.dataset.screen !== 'hub' || e.target.tagName === 'INPUT') return;
+    if (e.code === 'ArrowRight') tiles.move(1);
+    if (e.code === 'ArrowLeft') tiles.move(-1);
+    if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); start(); }
+  });
+
+  function randomPreview(ctx, w, h, t, people) {
+    ctx.fillStyle = '#0a0b14'; ctx.fillRect(0, 0, w, h);
+    ctx.font = "bold 64px 'Rubik', sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffd166';
+    ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(Math.sin(t * 2) * 0.2); ctx.fillText('?', 0, 0); ctx.restore();
+    ctx.textAlign = 'left';
+  }
+
   function lastFirstName(exceptOrder = null) {
     const g = history.find((x) => !exceptOrder || x.order_ids.join() !== exceptOrder.join());
     if (!g) return '';
     const p = participants.find((x) => x.id === g.order_ids[0]);
     return p ? p.name : '';
   }
+  const memoText = (name) => (name ? `Вчера первым был(а) ${name}, сегодня первым не будет` : 'Игр ещё не было');
+
+  const cacheKey = `dp:room:${roomId}`;
+  try { room = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (_) { room = null; }
 
   function applyRoom(r) {
     room = r;
-    participants = (r.participants || []).map((p) => ({ ...p, avatar: avatarFor(p.name) }));
+    participants = (r.participants || []).map((p) => ({ ...p, person: personFor(p.name) }));
     try { localStorage.setItem(cacheKey, JSON.stringify({ id: r.id, participants: r.participants, settings: r.settings })); } catch (_) {}
-    panel.set(participants, lastFirstName());
+    team.set(participants);
+    tiles.setPeople(present());
+    $('#memo').textContent = memoText(lastFirstName());
     updateStart();
   }
-
   function present() { return participants.filter((p) => p.present !== false); }
-
   function updateStart() {
     const n = present().length;
     startBtn.disabled = state !== 'idle' || n < 2;
-    $('#count').textContent = `${n} из ${participants.length}`;
+    $('#count').textContent = `${n} из ${participants.length} сегодня`;
+    startBtn.textContent = n < 2 ? 'Нужно хотя бы двое' : 'Играть';
   }
+  function setState(s) { state = s; updateStart(); }
 
-  function setState(s) { state = s; updateStart(); document.body.dataset.state = s; }
-
-  // ---------- Размер холста ----------
-  const scene = $('#scene');
-  const fit = () => { canvas.width = scene.clientWidth; canvas.height = scene.clientHeight; if (state === 'idle') drawIdle(); };
-  new ResizeObserver(fit).observe(scene);
-
-  function drawIdle() {
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width, h = canvas.height;
-    theme.drawSky(ctx, w, Math.round(h * 0.6), 0);
-    theme.drawGround(ctx, Math.round(h * 0.6), w, h, 0);
-    theme.drawTorch(ctx, w * 0.2, h * 0.6, 0); theme.drawTorch(ctx, w * 0.8, h * 0.6, 0);
-    ctx.font = `14px ${theme.font}`; ctx.fillStyle = theme.colors.text; ctx.textBaseline = 'top';
-    const msg = present().length < 2 ? 'Добавь хотя бы двух участников' : 'Нажми «Старт»';
-    ctx.fillText(msg, Math.round(w / 2 - ctx.measureText(msg).width / 2), Math.round(h * 0.6 + 24));
-  }
+  // ---------- Холст ----------
+  const fit = () => { canvas.width = $('#game').clientWidth; canvas.height = $('#game').clientHeight; };
+  new ResizeObserver(fit).observe($('#game'));
 
   // ---------- Старт ----------
-  startBtn.onclick = async () => {
+  startBtn.onclick = start;
+  async function start() {
     if (state !== 'idle') return;
     const ps = present();
     if (ps.length < 2) return;
     const seed = randomSeed();
-    const game = gameSel.value === 'random' ? pickGame(seed) : gameById(gameSel.value);
+    const choice = tiles.selected === 'random' ? pickGame(seed) : gameById(tiles.selected);
     const orderIds = computeOrder({ participants: ps, history, seed });
     setState('starting');
     const local = () => {
       history = [{ id: null, order_ids: orderIds }, ...history];
-      runGame({ gameId: null, game: game.id, seed, orderIds, startAt: Date.now() + 3000 });
+      runGame({ gameId: null, game: choice.id, seed, orderIds, startAt: Date.now() + 3000 });
     };
     if (!channel) { local(); return; }
     try {
-      const row = await db.insertGame({ room_id: roomId, game: game.id, seed, order_ids: orderIds });
+      const row = await db.insertGame({ room_id: roomId, game: choice.id, seed, order_ids: orderIds });
       seenGames.add(row.id);
-      await channel.sendStart({ gameId: row.id, game: game.id, seed, orderIds, startAt: db.serverNow() + 3000 });
-    } catch (e) {
-      toast('База недоступна, играем локально');
-      local();
-    }
-  };
+      await channel.sendStart({ gameId: row.id, game: choice.id, seed, orderIds, startAt: db.serverNow() + 3000 });
+    } catch (e) { toast('База недоступна, играем локально'); local(); }
+  }
 
-  // ---------- Игра по событию старта ----------
-  async function runGame({ gameId, game: gid, seed, orderIds, startAt }) {
+  async function runGame(payload) {
     if (state !== 'idle' && state !== 'starting') return;
-    if (gameId) seenGames.add(gameId);
-    const game = gameById(gid);
-    const ordered = orderIds.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
-    if (!game || ordered.length < 1) return;
-    const memo = lastFirstName(orderIds);
+    lastPayload = payload;
+    if (payload.gameId) seenGames.add(payload.gameId);
+    const game = gameById(payload.game);
+    const ordered = payload.orderIds.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
+    if (!game || ordered.length < 1) { setState('idle'); return; }
+    const memo = lastFirstName(payload.orderIds);
+    show('game'); fit();
+    $('#hud-title').textContent = game.title;
     setState('countdown');
-    await countdown(startAt);
+    await countdown(payload.startAt, true);
     setState('playing');
     sound.go();
-    running = game.play({
-      canvas, theme, participants: ordered, order: orderIds, seed,
-      onEvent: (ev) => { if (ev === 'pop') sound.pop(); },
-      onFreeze: async () => {
+    const started = performance.now();
+    const timer = setInterval(() => { $('#hud-time').textContent = ((performance.now() - started) / 1000).toFixed(1); }, 100);
+    // Страховка: если игра зависла или упала, всё равно показываем итог.
+    let frozen = false;
+    const watchdog = setTimeout(() => { if (!frozen) { console.warn('игра не завершилась вовремя'); if (running) running.stop(); freeze(); } }, (game.duration + 8) * 1000);
+    const freeze = async () => {
+      if (frozen) return; frozen = true; clearTimeout(watchdog);
+        clearInterval(timer);
         setState('frozen');
         sound.rollStart();
-        await countdown(Date.now() + 3000);
-        sound.rollStop();
-        sound.fanfare();
+        await countdown(Date.now() + 3000, false);
+        sound.rollStop(); sound.fanfare();
         setState('reveal');
-        result.show(ordered, memo);
-      },
+        show('result');
+        result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : '');
+    };
+    running = game.play({
+      canvas, participants: ordered, order: payload.orderIds, seed: payload.seed,
+      onEvent: (ev) => { if (ev === 'pop') sound.pop(); if (ev === 'tick') sound.tick(); },
+      onFreeze: freeze,
     });
   }
 
-  function countdown(untilMs, useServer = true) {
+  function countdown(untilMs, useServer) {
     return new Promise((resolve) => {
       let lastShown = null;
       const tick = () => {
-        const now = useServer && state === 'countdown' ? db.serverNow() : Date.now();
+        const now = useServer ? db.serverNow() : Date.now();
         const left = Math.ceil((untilMs - now) / 1000);
-        if (left <= 0) { overlay.textContent = ''; overlay.hidden = true; resolve(); return; }
+        if (left <= 0) { overlay.hidden = true; resolve(); return; }
         if (left !== lastShown) { lastShown = left; overlay.textContent = String(left); overlay.hidden = false; sound.tick(); }
-        setTimeout(tick, 100); // не rAF: в фоновой вкладке отсчёт всё равно идёт
+        setTimeout(tick, 100);
       };
       tick();
     });
   }
 
-  // ---------- Настройки в углу ----------
+  // ---------- Настройки ----------
   const soundBtn = $('#sound'), crtBtn = $('#crt-toggle');
   const syncButtons = () => {
-    soundBtn.textContent = sound.enabled ? 'Звук: вкл' : 'Звук: выкл';
+    soundBtn.textContent = sound.enabled ? 'Звук вкл' : 'Звук выкл'; soundBtn.classList.toggle('on', sound.enabled);
     const crt = localStorage.getItem('dp:crt') === '1';
-    crtBtn.textContent = crt ? 'ТВ: вкл' : 'ТВ: выкл';
+    crtBtn.textContent = crt ? 'ТВ вкл' : 'ТВ выкл'; crtBtn.classList.toggle('on', crt);
     $('#crt').hidden = !crt;
   };
   sound.setEnabled(localStorage.getItem('dp:sound') === '1');
   soundBtn.onclick = () => { sound.setEnabled(!sound.enabled); localStorage.setItem('dp:sound', sound.enabled ? '1' : '0'); syncButtons(); };
   crtBtn.onclick = () => { localStorage.setItem('dp:crt', localStorage.getItem('dp:crt') === '1' ? '0' : '1'); syncButtons(); };
   $('#copy').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Ссылка скопирована'); } catch (_) { toast(location.href, 8000); } };
-  $('#toggle-panel').onclick = () => document.body.classList.toggle('panel-hidden');
   syncButtons();
 
   // ---------- Данные ----------
@@ -198,10 +207,9 @@ async function boot() {
         history = [row, ...history.filter((x) => x.id !== row.id)];
         if (seenGames.has(row.id)) return;
         seenGames.add(row.id);
-        // Событие старта не дошло: показываем итог без анимации.
         if (state === 'idle') {
           const ordered = row.order_ids.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
-          if (ordered.length) { setState('reveal'); result.show(ordered, '', 'Игра уже прошла, показываю итог'); }
+          if (ordered.length) { setState('reveal'); show('result'); result.show(ordered, 'Игра уже прошла, показываю итог'); }
         }
       },
       onStart: (payload) => runGame(payload),
@@ -212,5 +220,4 @@ async function boot() {
     if (!room) applyRoom({ id: roomId, participants: [], settings: {} });
   }
   setState('idle');
-  fit();
 }

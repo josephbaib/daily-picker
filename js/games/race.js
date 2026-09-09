@@ -1,6 +1,6 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc } from './scene.js?v=0a3148a-1452';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc } from './scene.js?v=6eebc1b-1545';
 
 const SKY = [[30, 24, 80], [80, 40, 110], [190, 80, 100], [245, 140, 90], [255, 205, 120]];
 
@@ -9,6 +9,7 @@ export default {
   id: 'race',
   title: 'Забег',
   description: 'Полный стадион, ревущие трибуны и одна финишная лента, за которой ждёт право сказать первое слово.',
+  cover: 'assets/covers/race.jpg',
   duration: 13,
   minPlayers: 2,
   maxPlayers: 20,

@@ -1,6 +1,6 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { label, makeParticles, drawStands } from './scene.js?v=0a3148a-1452';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { label, makeParticles, drawStands } from './scene.js?v=6eebc1b-1545';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.

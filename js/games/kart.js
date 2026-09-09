@@ -1,6 +1,6 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud } from './scene.js?v=0a3148a-1452';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud } from './scene.js?v=6eebc1b-1545';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, машинки с сидящими персонажами,
 // четыре участка трассы с препятствиями. Порядок финиша задан заранее, препятствия только для зрелища.

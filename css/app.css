@@ -49,6 +49,8 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .cps { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: #6f8cc8; }
 .cart { position: relative; flex: 1; overflow: hidden; }
 .cart canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; object-fit: cover; }
+.cart .cimg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.cart .cimg[hidden], .cart canvas[hidden] { display: none; }
 .cshade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(0,0,0,0.85) 100%); }
 .ctitle { position: absolute; left: 10px; right: 10px; bottom: 10px; font-family: var(--font); font-weight: 400; font-size: 22px; line-height: 1; letter-spacing: 0.04em; text-transform: uppercase; color: #fff; text-shadow: 0 2px 0 #000, 0 0 18px rgba(120,160,255,0.6); }
 .cfoot { height: 28px; background: #0a0a12; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; }

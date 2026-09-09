@@ -1,6 +1,6 @@
-import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { label, makeParticles, drawNpcBust } from './scene.js?v=0a3148a-1452';
+import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { label, makeParticles, drawNpcBust } from './scene.js?v=6eebc1b-1545';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];
@@ -94,6 +94,7 @@ export default {
   id: 'horror',
   title: 'Особняк',
   description: 'Старый особняк заперт на ночь, и дом забирает команду по одному, пока не останется тот, кому говорить первым.',
+  cover: 'assets/covers/horror.jpg',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,

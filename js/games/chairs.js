@@ -1,6 +1,6 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust } from './scene.js?v=0a3148a-1452';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust } from './scene.js?v=6eebc1b-1545';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';
@@ -132,6 +132,7 @@ export default {
   id: 'chairs',
   title: 'Гонки на стульях',
   description: 'Безумный заезд на офисных креслах по коридору, где на кону не кубок, а первое слово на дейлике.',
+  cover: 'assets/covers/chairs.jpg',
   duration: 13,
   minPlayers: 2,
   maxPlayers: 20,

@@ -1,4 +1,4 @@
-import { portraitCanvas, personFor } from '../sprite.js?v=0a3148a-1452';
+import { portraitCanvas, personFor } from '../sprite.js?v=6eebc1b-1545';
 
 function shortId() { return Math.random().toString(36).slice(2, 8); }
 
@@ -70,9 +70,10 @@ export function mountGameTiles(root, games, { onSelect }) {
     tile.className = 'gtile'; tile.dataset.id = g.id;
     const cover = document.createElement('div'); cover.className = 'cover';
     cover.innerHTML = `<div class="cband"><span class="cplat">B2Bсосы</span><span class="cps">дейлик</span></div>
-      <div class="cart"><canvas width="260" height="190"></canvas><div class="cshade"></div><div class="ctitle"></div></div>
+      <div class="cart"><canvas width="260" height="190"></canvas><img class="cimg" alt="" hidden><div class="cshade"></div><div class="ctitle"></div></div>
       <div class="cfoot"><span class="csber">Сбер</span><span class="cage">6+</span></div>`;
     const cv = cover.querySelector('canvas');
+    if (g.cover) { const img = cover.querySelector('.cimg'); img.src = g.cover; img.hidden = false; cv.hidden = true; }
     cover.querySelector('.ctitle').textContent = g.title;
     const body = document.createElement('div'); body.className = 'gbody';
     body.innerHTML = `<div class="gtitle"></div><div class="gdesc"></div><div class="gmeta"></div>`;

@@ -1,6 +1,6 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=0a3148a-1452';
-import { mulberry32 } from '../rng.js?v=0a3148a-1452';
-import { label, makeParticles, drawDesk, drawPlant } from './scene.js?v=0a3148a-1452';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { label, makeParticles, drawDesk, drawPlant } from './scene.js?v=6eebc1b-1545';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами
@@ -72,6 +72,7 @@ export default {
   id: 'elevator',
   title: 'Лифт',
   description: 'Перегруженный лифт ползёт на совещание, и на каждом этаже кому-то придётся выйти раньше времени.',
+  cover: 'assets/covers/elevator.jpg',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,

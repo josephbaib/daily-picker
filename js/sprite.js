@@ -1,6 +1,6 @@
-import { hashString, mulberry32 } from './rng.js?v=0a3148a-1452';
-import { ROSTER } from './roster.js?v=0a3148a-1452';
-import { buildSheet, sheetOf, frameRect, LPC_CELL, preload, keyOf } from './lpc.js?v=0a3148a-1452';
+import { hashString, mulberry32 } from './rng.js?v=6eebc1b-1545';
+import { ROSTER } from './roster.js?v=6eebc1b-1545';
+import { buildSheet, sheetOf, frameRect, LPC_CELL, preload, keyOf } from './lpc.js?v=6eebc1b-1545';
 
 // Персонаж занимает ячейку 64×64; тело внутри примерно 32 в ширину и 56 в высоту.
 export const SPRITE_W = LPC_CELL;
@@ -70,7 +70,22 @@ export function drawSprite(ctx, p, frame, x, y, scale = 3, flip = false) {
   ctx.drawImage(spriteCanvas(p, frame, scale, flip), Math.round(x), Math.round(y));
 }
 
-// Портрет: лицо крупно, из кадра анфас.
+// Портрет: лицо крупно, из кадра анфас. Область берётся по реальным границам спрайта,
+// чтобы у своих листов с крупной головой портрет был того же размера, что у остальных.
+const bboxCache = new Map();
+function idleBox(sheet, key) {
+  if (bboxCache.has(key)) return bboxCache.get(key);
+  const f = frameRect('idle');
+  const tmp = document.createElement('canvas'); tmp.width = f.w; tmp.height = f.h;
+  const tctx = tmp.getContext('2d'); tctx.drawImage(sheet, f.sx, f.sy, f.w, f.h, 0, 0, f.w, f.h);
+  const d = tctx.getImageData(0, 0, f.w, f.h).data;
+  let x0 = f.w, x1 = 0, y0 = f.h, y1 = 0;
+  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) if (d[(y * f.w + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const box = x1 >= x0 ? { x0, x1, y0, y1 } : { x0: 16, x1: 48, y0: 6, y1: 60 };
+  bboxCache.set(key, box);
+  return box;
+}
+
 export function portraitCanvas(p, scale = 3) {
   const sheet = sheetOf(p);
   const key = 'portrait|' + keyOf(p) + '|' + scale + '|' + (sheet ? 1 : 0);
@@ -81,7 +96,11 @@ export function portraitCanvas(p, scale = 3) {
   const ctx = c.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   const f = frameRect('idle');
-  ctx.drawImage(sheet, f.sx + 16, f.sy + 6, 32, 28, 0, 0, c.width, c.height);
+  const b = idleBox(sheet, keyOf(p));
+  const bw = b.x1 - b.x0 + 1, cx = (b.x0 + b.x1) / 2;
+  // окно портрета: ширина 1.15 от ширины спрайта, высота в пропорции 32:28, от макушки
+  const win = Math.max(24, bw * 1.15), winH = win * 28 / 32;
+  ctx.drawImage(sheet, f.sx + cx - win / 2, f.sy + b.y0 - 2, win, winH, 0, 0, c.width, c.height);
   cache.set(key, c);
   return c;
 }

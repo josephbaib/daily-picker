@@ -1,7 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3b8b1e8-1658';
-import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=018888a-1722';
+import { mulberry32 } from '../rng.js?v=018888a-1722';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, drawCloud, nextFrame, cancelFrame } from './scene.js?v=018888a-1722';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, машинки с сидящими персонажами,
 // четыре участка трассы с препятствиями. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -35,57 +35,114 @@ function drawKartSide(ctx, person, x, y, scale, color, tilt, wheelSpin, boost) {
   ctx.restore();
 }
 
+// Три плана: дальний (небо, горы, силуэт города, скорость 0.15), средний (участки трассы вокруг офиса, 0.6),
+// ближний (дорога, поребрики, ограждение, фонари, 1.0). Всё привязано к мировой координате.
+function drawFar(ctx, w, h, camX, groundY, t) {
+  const sky = ctx.createLinearGradient(0, 0, 0, groundY); sky.addColorStop(0, '#24306a'); sky.addColorStop(0.55, '#7a5aa0'); sky.addColorStop(1, '#ffb070'); ctx.fillStyle = sky; ctx.fillRect(0, 0, w, groundY);
+  ctx.fillStyle = 'rgba(255,220,150,0.25)'; ctx.beginPath(); ctx.arc(w * 0.72, groundY * 0.55, 90, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffe2aa'; ctx.beginPath(); ctx.arc(w * 0.72, groundY * 0.55, 46, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 6; i++) drawCloud(ctx, ((i * 300 - camX * 0.08 + t * 6) % (w + 300)) - 150, 20 + (i % 3) * 32, 6 + (i % 2) * 3, 'rgba(255,230,230,0.85)');
+  // горы двумя слоями
+  ctx.fillStyle = '#4a3a7a'; ctx.beginPath(); ctx.moveTo(0, groundY);
+  for (let x = -((camX * 0.12) % 260) - 260; x < w + 260; x += 260) { ctx.lineTo(x + 90, groundY - groundY * 0.42); ctx.lineTo(x + 180, groundY - groundY * 0.2); }
+  ctx.lineTo(w, groundY); ctx.fill();
+  ctx.fillStyle = '#3a2c62'; ctx.beginPath(); ctx.moveTo(0, groundY);
+  for (let x = -((camX * 0.18) % 200) - 200; x < w + 200; x += 200) { ctx.lineTo(x + 70, groundY - groundY * 0.3); ctx.lineTo(x + 140, groundY - groundY * 0.14); }
+  ctx.lineTo(w, groundY); ctx.fill();
+  // силуэт города с окнами
+  const rr = mulberry32(5);
+  for (let x = -((camX * 0.25) % 120) - 120; x < w; x += 120) { const bh = groundY * (0.12 + ((x + camX * 0.25) / 120 % 4) * 0.05); ctx.fillStyle = '#2a2050'; ctx.fillRect(x, groundY - bh, 90, bh); ctx.fillStyle = '#ffd98a'; for (let wy = groundY - bh + 8; wy < groundY - 6; wy += 10) for (let wx = x + 8; wx < x + 84; wx += 12) if (((wx * 7 + wy * 13) % 10) < 5) ctx.fillRect(wx, wy, 5, 5); ctx.fillStyle = '#1e1640'; ctx.fillRect(x + 10, groundY - bh - 12, 18, 12); }
+}
+
+function drawTree(ctx, x, y, s, t) {
+  ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x - 4 * s, y - 30 * s, 8 * s, 30 * s);
+  const sway = Math.sin(t * 1.5 + x * 0.01) * 2;
+  [[0, -44, 26, '#2f7a34'], [-12 + sway, -36, 20, '#3a8f3e'], [12 + sway, -34, 20, '#3a8f3e'], [0, -28, 22, '#46a84a'], [-4 + sway, -50, 14, '#5cbf5e']].forEach(([dx, dy, r, c]) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x + dx * s, y + dy * s, r * s, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(x, y, 22 * s, 6 * s, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawCar(ctx, x, y, color) {
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x - 2, y + 2, 60, 6);
+  ctx.fillStyle = color; ctx.fillRect(x, y - 18, 56, 18); ctx.fillRect(x + 12, y - 28, 30, 10);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y - 18, 56, 3);
+  ctx.fillStyle = '#9ad0ff'; ctx.fillRect(x + 15, y - 26, 11, 8); ctx.fillRect(x + 29, y - 26, 11, 8);
+  ctx.fillStyle = '#222'; ctx.fillRect(x + 6, y - 4, 12, 8); ctx.fillRect(x + 38, y - 4, 12, 8);
+  ctx.fillStyle = '#888'; ctx.fillRect(x + 9, y - 1, 6, 3); ctx.fillRect(x + 41, y - 1, 6, 3);
+  ctx.fillStyle = '#ffd166'; ctx.fillRect(x + 52, y - 14, 4, 4); ctx.fillStyle = '#ff5050'; ctx.fillRect(x, y - 14, 3, 4);
+}
+
 function drawSection(ctx, w, h, camX, L, groundY, t, seed) {
-  // мир повторяется каждый круг: рисуем участки по мировой координате
-  const rnd = mulberry32(seed);
-  const x0 = Math.floor(camX / L) * L - L;
-  ctx.fillStyle = '#7fb3e6'; ctx.fillRect(0, 0, w, groundY); // небо
-  for (let i = 0; i < 5; i++) drawCloud(ctx, ((i * 300 - camX * 0.1 + t * 6) % (w + 300)) - 150, 20 + (i % 3) * 30, 6 + (i % 2) * 3);
+  drawFar(ctx, w, h, camX, groundY, t);
+  const mid = camX * 0.6;
+  const seg = L / 4;
+  const x0 = Math.floor(mid / L) * L - L;
   for (let lap = 0; lap < 3; lap++) {
     const base = x0 + lap * L;
-    const seg = L / 4;
-    // 1. парковка у офиса
-    const sx1 = base - camX;
+    // 1. штаб-квартира Сбера и парковка
+    const sx1 = base - mid;
     if (sx1 < w && sx1 + seg > 0) {
-      ctx.fillStyle = '#21a038'; ctx.fillRect(sx1, groundY * 0.18, seg, groundY * 0.82);
-      ctx.fillStyle = '#1b8a2f'; for (let fx = sx1 + 10; fx < sx1 + seg; fx += 34) for (let fy = groundY * 0.24; fy < groundY * 0.95; fy += 26) ctx.fillRect(fx, fy, 22, 16);
-      ctx.fillStyle = '#e8f4ff'; for (let fx = sx1 + 14; fx < sx1 + seg; fx += 34) for (let fy = groundY * 0.28; fy < groundY * 0.9; fy += 26) ctx.fillRect(fx, fy, 14, 9);
-      ctx.fillStyle = '#fff'; ctx.fillRect(sx1 + seg * 0.4, groundY * 0.06, 140, 26); ctx.fillStyle = '#21a038'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('СБЕР', sx1 + seg * 0.4 + 14, groundY * 0.06 + 8);
-      ctx.fillStyle = '#5a5a5a'; ctx.fillRect(sx1, groundY - 34, seg, 34);
-      for (let px = sx1 + 30; px < sx1 + seg - 60; px += 90) { ctx.fillStyle = ['#c0392b', '#2980b9', '#f1c40f', '#ecf0f1'][Math.abs(Math.round((px + camX) / 90)) % 4]; ctx.fillRect(px, groundY - 30, 56, 18); ctx.fillStyle = '#222'; ctx.fillRect(px + 6, groundY - 14, 12, 8); ctx.fillRect(px + 38, groundY - 14, 12, 8); ctx.fillStyle = '#9ad0ff'; ctx.fillRect(px + 14, groundY - 28, 28, 8); }
-      ctx.fillStyle = '#fff'; for (let px = sx1; px < sx1 + seg; px += 90) ctx.fillRect(px, groundY - 34, 4, 34);
+      const bh = groundY * 0.82, bx = sx1 + seg * 0.18, bw = seg * 0.64;
+      ctx.fillStyle = '#146a2a'; ctx.fillRect(bx + 10, groundY - bh + 10, bw, bh); // тень корпуса
+      ctx.fillStyle = '#21a038'; ctx.fillRect(bx, groundY - bh, bw, bh);
+      ctx.fillStyle = '#4fc86a'; ctx.fillRect(bx, groundY - bh, 10, bh); ctx.fillRect(bx, groundY - bh, bw, 8);
+      for (let fx = bx + 18; fx < bx + bw - 18; fx += 34) for (let fy = groundY - bh + 22; fy < groundY - 30; fy += 26) { const lit = ((fx * 3 + fy * 7 + lap) % 9) < 5; ctx.fillStyle = lit ? '#fff2c0' : '#0f4a1e'; ctx.fillRect(fx, fy, 22, 14); ctx.fillStyle = lit ? '#fff' : '#1a6a30'; ctx.fillRect(fx, fy, 22, 3); ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(fx + 2, fy + 4, 6, 8); }
+      ctx.fillStyle = '#d8f0dc'; ctx.fillRect(bx + bw * 0.3, groundY - 50, bw * 0.4, 50); ctx.fillStyle = '#9ad0ff'; ctx.fillRect(bx + bw * 0.34, groundY - 44, bw * 0.32, 40); ctx.fillStyle = '#0f4a1e'; ctx.fillRect(bx + bw * 0.5 - 2, groundY - 44, 4, 40);
+      ctx.fillStyle = '#21a038'; ctx.fillRect(bx + bw * 0.24, groundY - 58, bw * 0.52, 10);
+      ctx.fillStyle = 'rgba(33,160,56,0.25)'; ctx.fillRect(bx + bw * 0.4 - 30, groundY - bh - 60, bw * 0.2 + 60, 60);
+      ctx.fillStyle = '#fff'; ctx.fillRect(bx + bw * 0.4, groundY - bh - 40, bw * 0.2, 30); ctx.fillStyle = '#21a038'; ctx.font = "12px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('СБЕР', bx + bw * 0.4 + 14, groundY - bh - 31);
+      ctx.fillStyle = '#21a038'; ctx.beginPath(); ctx.arc(bx + bw * 0.4 - 16, groundY - bh - 25, 12, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx + bw * 0.4 - 16, groundY - bh - 25, 7, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#21a038'; ctx.fillRect(bx + bw * 0.4 - 19, groundY - bh - 28, 6, 6);
+      [0.06, 0.12, 0.88, 0.94].forEach((f) => drawTree(ctx, sx1 + seg * f, groundY, 1.1, t));
+      [0.2, 0.8].forEach((f, i) => { const fx = sx1 + seg * f; ctx.fillStyle = '#ddd'; ctx.fillRect(fx, groundY - 120, 3, 120); const wave = Math.sin(t * 4 + i) * 3; ctx.fillStyle = '#21a038'; ctx.beginPath(); ctx.moveTo(fx + 3, groundY - 118); ctx.lineTo(fx + 40, groundY - 112 + wave); ctx.lineTo(fx + 40, groundY - 92 + wave); ctx.lineTo(fx + 3, groundY - 96); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(fx + 14, groundY - 108 + wave / 2, 14, 8); });
+      // парковка: асфальт с разметкой и машины в три тона
+      ctx.fillStyle = '#5a5a62'; ctx.fillRect(sx1, groundY - 26, seg, 26); ctx.fillStyle = '#6a6a72'; ctx.fillRect(sx1, groundY - 26, seg, 3);
+      ctx.fillStyle = '#e8e8e8'; for (let px = sx1; px < sx1 + seg; px += 90) ctx.fillRect(px, groundY - 26, 3, 26);
+      for (let px = sx1 + 30; px < sx1 + seg - 60; px += 90) drawCar(ctx, px, groundY - 6, ['#c0392b', '#2980b9', '#f1c40f', '#ecf0f1', '#8e44ad'][Math.abs(Math.round((px + mid) / 90)) % 5]);
     }
     // 2. коридор офиса за стеклом
-    const sx2 = base + seg - camX;
+    const sx2 = base + seg - mid;
     if (sx2 < w && sx2 + seg > 0) {
-      ctx.fillStyle = '#e8e2d2'; ctx.fillRect(sx2, groundY * 0.15, seg, groundY * 0.85);
-      ctx.fillStyle = '#d6d2c6'; ctx.fillRect(sx2, groundY * 0.15, seg, 12);
-      ctx.fillStyle = '#fbfbf2'; for (let px = sx2 + 40; px < sx2 + seg; px += 200) ctx.fillRect(px, groundY * 0.2, 100, 6);
-      for (let px = sx2 + 20, i = 0; px + 120 < sx2 + seg; px += 150, i++) { ctx.fillStyle = '#e9f1f7'; ctx.fillRect(px, groundY * 0.3, 130, groundY * 0.6); ctx.fillStyle = '#b9c8d6'; ctx.fillRect(px, groundY * 0.3, 130, 3); drawDesk(ctx, px + 16, groundY * 0.88, 1, i + lap * 3, t); }
-      ctx.fillStyle = '#21a038'; ctx.fillRect(sx2 + seg - 80, groundY * 0.22, 40, 14); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.fillText('EXIT', sx2 + seg - 76, groundY * 0.22 + 4);
+      ctx.fillStyle = '#d6d2c6'; ctx.fillRect(sx2, groundY * 0.12, seg, groundY * 0.1);
+      ctx.fillStyle = '#c4c0b4'; for (let px = sx2; px < sx2 + seg; px += 60) ctx.fillRect(px, groundY * 0.12, 2, groundY * 0.1);
+      ctx.fillStyle = '#e8e2d2'; ctx.fillRect(sx2, groundY * 0.22, seg, groundY * 0.78);
+      ctx.fillStyle = '#cfc9b8'; ctx.fillRect(sx2, groundY * 0.22, seg, 6); ctx.fillRect(sx2, groundY - 12, seg, 12);
+      for (let px = sx2 + 40; px < sx2 + seg; px += 200) { ctx.fillStyle = 'rgba(255,255,240,0.22)'; ctx.fillRect(px - 20, groundY * 0.2, 140, groundY * 0.5); ctx.fillStyle = '#fbfbf2'; ctx.fillRect(px, groundY * 0.17, 100, 6); }
+      for (let px = sx2 + 20, i = 0; px + 140 < sx2 + seg; px += 160, i++) { ctx.fillStyle = '#e9f1f7'; ctx.fillRect(px, groundY * 0.3, 140, groundY * 0.6); ctx.fillStyle = '#b9c8d6'; ctx.fillRect(px, groundY * 0.3, 140, 3); ctx.fillRect(px + 68, groundY * 0.3, 4, groundY * 0.6); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(px + 10, groundY * 0.32, 26, groundY * 0.56); drawDesk(ctx, px + 12, groundY * 0.88, 1, i + lap * 3, t); drawDesk(ctx, px + 78, groundY * 0.88, 1, i + lap * 3 + 7, t); }
+      drawPlant(ctx, sx2 + seg - 40, groundY - 12, 1); drawPlant(ctx, sx2 + 8, groundY - 12, 1);
+      ctx.fillStyle = 'rgba(33,160,56,0.35)'; ctx.fillRect(sx2 + seg - 92, groundY * 0.2, 64, 26); ctx.fillStyle = '#21a038'; ctx.fillRect(sx2 + seg - 80, groundY * 0.22, 40, 14); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.fillText('EXIT', sx2 + seg - 76, groundY * 0.22 + 4);
     }
     // 3. столовая
-    const sx3 = base + 2 * seg - camX;
+    const sx3 = base + 2 * seg - mid;
     if (sx3 < w && sx3 + seg > 0) {
       ctx.fillStyle = '#f2e6c8'; ctx.fillRect(sx3, groundY * 0.15, seg, groundY * 0.85);
-      ctx.fillStyle = '#e0c9a0'; for (let px = sx3; px < sx3 + seg; px += 24) ctx.fillRect(px, groundY * 0.15, 2, groundY * 0.85);
-      for (let px = sx3 + 40; px + 100 < sx3 + seg; px += 170) { ctx.fillStyle = '#8a5a3a'; ctx.fillRect(px, groundY * 0.62, 90, 8); ctx.fillRect(px + 6, groundY * 0.62 + 8, 6, 30); ctx.fillRect(px + 78, groundY * 0.62 + 8, 6, 30); ctx.fillStyle = '#fff'; ctx.fillRect(px + 20, groundY * 0.62 - 10, 14, 10); ctx.fillRect(px + 50, groundY * 0.62 - 10, 14, 10); drawNpc(ctx, 7 + lap, 'idle', px + 100, groundY * 0.62 - 50, 1.2); }
-      ctx.fillStyle = '#2a2a30'; ctx.fillRect(sx3 + seg - 90, groundY * 0.45, 50, 60); ctx.fillStyle = '#ff5050'; ctx.fillRect(sx3 + seg - 82, groundY * 0.45 + 8, 8, 8); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.fillText('КОФЕ', sx3 + seg - 86, groundY * 0.45 + 24);
+      ctx.fillStyle = '#e0c9a0'; for (let px = sx3; px < sx3 + seg; px += 24) ctx.fillRect(px, groundY * 0.15, 2, groundY * 0.85); for (let py = groundY * 0.15; py < groundY; py += 24) ctx.fillRect(sx3, py, seg, 1);
+      ctx.fillStyle = '#3a2a1a'; ctx.fillRect(sx3 + 30, groundY * 0.2, 150, 60); ctx.fillStyle = '#f8f0d8'; ctx.font = "6px 'Press Start 2P', monospace"; ['КОФЕ 0 ₽', 'ЛАТТЕ 0 ₽', 'ДЕЙЛИК 1'].forEach((l, i) => ctx.fillText(l, sx3 + 40, groundY * 0.2 + 12 + i * 16));
+      for (let px = sx3 + 40; px + 100 < sx3 + seg; px += 170) { ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fillRect(px + 4, groundY * 0.62 + 40, 90, 6); ctx.fillStyle = '#8a5a3a'; ctx.fillRect(px, groundY * 0.62, 90, 8); ctx.fillStyle = '#a87a52'; ctx.fillRect(px, groundY * 0.62, 90, 2); ctx.fillStyle = '#6a4224'; ctx.fillRect(px + 6, groundY * 0.62 + 8, 6, 30); ctx.fillRect(px + 78, groundY * 0.62 + 8, 6, 30); ctx.fillStyle = '#fff'; ctx.fillRect(px + 20, groundY * 0.62 - 10, 14, 10); ctx.fillRect(px + 50, groundY * 0.62 - 10, 14, 10); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(px + 22, groundY * 0.62 - 8, 10, 3); ctx.fillRect(px + 52, groundY * 0.62 - 8, 10, 3); drawNpc(ctx, 7 + lap, 'idle', px + 100, groundY * 0.62 - 50, 1.2); for (let k = 0; k < 3; k++) { ctx.fillStyle = `rgba(255,255,255,${0.35 - k * 0.1})`; ctx.fillRect(px + 26 + Math.sin(t * 3 + k) * 3, groundY * 0.62 - 20 - k * 8 - (t * 20 % 8), 3, 6); } }
+      const cm = sx3 + seg - 90; ctx.fillStyle = '#2a2a30'; ctx.fillRect(cm, groundY * 0.45, 50, 60); ctx.fillStyle = '#3c3c44'; ctx.fillRect(cm, groundY * 0.45, 50, 4); ctx.fillStyle = Math.floor(t * 2) % 2 ? '#ff5050' : '#802020'; ctx.fillRect(cm + 8, groundY * 0.45 + 8, 8, 8); ctx.fillStyle = 'rgba(255,80,80,0.2)'; ctx.fillRect(cm - 6, groundY * 0.45 - 2, 62, 24); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.fillText('КОФЕ', cm + 6, groundY * 0.45 + 24); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(cm + 16, groundY * 0.45 + 44, 18, 10);
       drawPlant(ctx, sx3 + 10, groundY * 0.98, 1);
     }
     // 4. серверная и башня ночью
-    const sx4 = base + 3 * seg - camX;
+    const sx4 = base + 3 * seg - mid;
     if (sx4 < w && sx4 + seg > 0) {
       ctx.fillStyle = '#141a34'; ctx.fillRect(sx4, groundY * 0.12, seg, groundY * 0.88);
-      for (let px = sx4 + 20; px + 60 < sx4 + seg; px += 80) { ctx.fillStyle = '#26304a'; ctx.fillRect(px, groundY * 0.25, 50, groundY * 0.7); for (let ly = groundY * 0.28; ly < groundY * 0.9; ly += 12) { ctx.fillStyle = Math.floor(t * 6 + px / 40 + ly) % 3 ? '#21a038' : '#0a3a14'; ctx.fillRect(px + 6, ly, 4, 4); ctx.fillStyle = '#3aa0ff'; ctx.fillRect(px + 14, ly, 4, 4); } }
-      ctx.fillStyle = '#fff'; ctx.fillRect(sx4 + seg * 0.5, groundY * 0.03, 160, 24); ctx.fillStyle = '#21a038'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.fillText('СБЕР ТРЕК', sx4 + seg * 0.5 + 12, groundY * 0.03 + 8);
+      ctx.fillStyle = '#1c2446'; for (let py = groundY * 0.12; py < groundY; py += 18) ctx.fillRect(sx4, py, seg, 1);
+      const tw = seg * 0.28, tx = sx4 + seg * 0.62; ctx.fillStyle = '#1e2a58'; ctx.fillRect(tx, groundY * 0.14, tw, groundY * 0.86); ctx.fillStyle = '#2e3c7a'; ctx.fillRect(tx, groundY * 0.14, 8, groundY * 0.86); for (let fy = groundY * 0.18; fy < groundY - 10; fy += 14) for (let fx = tx + 14; fx < tx + tw - 8; fx += 16) { ctx.fillStyle = ((fx * 5 + fy * 3) % 7) < 4 ? '#ffe9a0' : '#101830'; ctx.fillRect(fx, fy, 9, 8); }
+      ctx.fillStyle = 'rgba(33,160,56,0.3)'; ctx.fillRect(tx - 20, groundY * 0.06, tw + 40, 40); ctx.fillStyle = '#fff'; ctx.fillRect(tx, groundY * 0.08, tw, 24); ctx.fillStyle = '#21a038'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.fillText('СБЕР ТРЕК', tx + 10, groundY * 0.08 + 8);
+      for (let px = sx4 + 20; px + 60 < tx - 20; px += 80) { ctx.fillStyle = '#20284a'; ctx.fillRect(px, groundY * 0.25, 50, groundY * 0.75); ctx.fillStyle = '#2c3660'; ctx.fillRect(px, groundY * 0.25, 50, 4); ctx.fillRect(px, groundY * 0.25, 4, groundY * 0.75); for (let ly = groundY * 0.28; ly < groundY * 0.95; ly += 12) { const on = Math.floor(t * 6 + px / 40 + ly) % 3; ctx.fillStyle = on ? '#21a038' : '#0a3a14'; ctx.fillRect(px + 8, ly, 4, 4); ctx.fillStyle = on === 1 ? '#3aa0ff' : '#0a2a5a'; ctx.fillRect(px + 16, ly, 4, 4); ctx.fillStyle = '#3a4470'; ctx.fillRect(px + 24, ly, 20, 4); } ctx.fillStyle = 'rgba(58,160,255,0.08)'; ctx.fillRect(px - 6, groundY * 0.22, 62, groundY * 0.8); }
+      ctx.fillStyle = '#3a4470'; for (let px = sx4 + 20; px < tx; px += 40) ctx.fillRect(px, groundY - 8, 30, 3);
     }
   }
-  // дорога общая
+  // ближний план: дорога с текстурой, поребрики, ограждение со зрителями, фонари
   ctx.fillStyle = '#4a4a52'; ctx.fillRect(0, groundY, w, h - groundY);
-  ctx.fillStyle = '#5a5a62'; ctx.fillRect(0, groundY, w, 6);
-  ctx.fillStyle = '#e8e8e8'; for (let px = -((camX) % 80) - 80; px < w; px += 80) ctx.fillRect(px, groundY + (h - groundY) * 0.5, 40, 3);
+  ctx.fillStyle = '#3e3e46'; for (let i = 0; i < 160; i++) { const px = ((i * 137 - camX) % (w + 20) + (w + 20)) % (w + 20) - 10, py = groundY + ((i * 71) % (h - groundY)); ctx.fillRect(px, py, 3, 2); }
   ctx.fillStyle = 'rgba(0,0,0,0.12)'; for (let y = groundY + 10; y < h; y += 8) ctx.fillRect(0, y, w, 1);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (let px = -((camX * 1.3) % 500) - 500; px < w; px += 500) { ctx.fillRect(px, groundY + (h - groundY) * 0.3, 90, 4); ctx.fillRect(px + 20, groundY + (h - groundY) * 0.7, 70, 4); }
+  ctx.fillStyle = '#e8e8e8'; for (let px = -((camX) % 80) - 80; px < w; px += 80) ctx.fillRect(px, groundY + (h - groundY) * 0.5, 40, 3);
+  for (let px = -((camX) % 40) - 40; px < w; px += 40) { ctx.fillStyle = (Math.floor((px + camX) / 40) % 2) ? '#e53935' : '#f4f4f4'; ctx.fillRect(px, groundY, 40, 8); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(px, groundY + 6, 40, 2); }
+  ctx.fillStyle = '#c9c9d0'; ctx.fillRect(0, groundY - 14, w, 6); ctx.fillStyle = '#8a8a94'; ctx.fillRect(0, groundY - 8, w, 8);
+  for (let px = -((camX) % 34) - 34; px < w; px += 34) { ctx.fillStyle = '#7a7a84'; ctx.fillRect(px, groundY - 14, 3, 14); }
+  for (let px = -((camX) % 260) - 260 + 30; px < w; px += 260) { ctx.fillStyle = 'rgba(255,230,160,0.12)'; ctx.beginPath(); ctx.moveTo(px + 3, groundY - 150); ctx.lineTo(px - 50, groundY); ctx.lineTo(px + 56, groundY); ctx.fill(); ctx.fillStyle = '#5a5a64'; ctx.fillRect(px, groundY - 150, 6, 136); ctx.fillStyle = '#fff6d0'; ctx.fillRect(px - 8, groundY - 158, 22, 8); }
+  for (let px = -((camX) % 520) - 520 + 120; px < w; px += 520) for (let k = 0; k < 3; k++) drawNpcBust(ctx, (Math.floor((px + camX) / 520) * 3 + k) % 12, px + k * 30, groundY - 44 + Math.round(Math.sin(t * 5 + k) * 2), 1, 30);
+  ctx.fillStyle = '#222'; for (let px = -((camX) % 360) - 360 + 200; px < w; px += 360) for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(px + k * 14, groundY - 6, 8, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#e53935'; ctx.beginPath(); ctx.arc(px + k * 14, groundY - 6, 3, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#222'; }
 }
 
 function drawObstacle(ctx, kind, x, y, t) {

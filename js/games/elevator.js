@@ -1,6 +1,6 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { label, makeParticles, drawDesk, drawPlant } from './scene.js?v=6eebc1b-1545';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3e26475-1555';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами
@@ -102,6 +102,7 @@ export default {
     const exited = [];
     let start = null, raf = 0, stopped = false;
     const dinged = new Set();
+    const sr = stepRandom(seed ^ 0x99);
 
     // пройдено этажей к моменту t: первый переезд до раунда 0, потом по одному за раунд, потом последний к переговорке
     const travelAt = (t) => {
@@ -124,7 +125,7 @@ export default {
       const x = Math.round(w / 2 - cw / 2), y = Math.round(h * 0.55 - ch / 2) + 20;
 
       // фаза
-      let doors = 0, alarm = false, floorNo = 1, moving = true, finale = false;
+      let doors = 0, alarm = false, floorNo = 1, moving = true, finale = false, threat = null;
       rounds.forEach((r, i) => {
         const local = (t - r.at) / k;
         if (local < 0) return;
@@ -136,7 +137,7 @@ export default {
         if (local < drive) { moving = true; }
         else if (local < roundLen) {
           moving = false;
-          if (ph < alarmT) alarm = true;
+          if (ph < alarmT) { alarm = true; const insideIds = participants.filter((p) => !exited.find((e) => e.id === p.id)).map((p) => p.id); threat = threatTarget(insideIds, r.id, ph, 0, alarmT * 0.9, (kk) => sr(i * 41 + kk)); }
           else if (ph < alarmT + openT) doors = (ph - alarmT) / openT;
           else if (ph < alarmT + openT + exitT) doors = 1;
           else doors = 1 - (ph - alarmT - openT - exitT) / closeT;
@@ -184,16 +185,17 @@ export default {
         const bob = moving ? Math.round(Math.sin(t * 10 + i) * scale * 0.5) : 0;
         const fr = finale && inside.length === 1 ? (Math.floor(t * 5) % 2 ? 'cheer' : 'cheer2') : 'idle';
         drawSprite(ctx, p.person, fr, baseX, baseY + bob + shake, scale);
-        label(ctx, p.name, baseX + SPRITE_W * scale / 2, baseY - 4 + bob, scale >= 3 ? 9 : 8, inside.length === 1 && finale ? '#ffd166' : '#f4ecd8');
+        if (threat === p.id) drawThreat(ctx, baseX + 16 * scale, baseY + bob - 2, 32 * scale, t);
+        label(ctx, p.name, baseX + SPRITE_W * scale / 2, baseY - 22 + bob, scale >= 3 ? 9 : 8, inside.length === 1 && finale ? '#ffd166' : '#f4ecd8');
       });
       drawCabinFront(ctx, x, y, cw, ch, doors, alarm, t, floorNo);
       ctx.restore();
       particles.draw(ctx, t);
 
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

@@ -1,6 +1,6 @@
-import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { label, makeParticles, drawNpcBust } from './scene.js?v=6eebc1b-1545';
+import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3e26475-1555';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];
@@ -130,6 +130,7 @@ export default {
     const dead = new Map(); // id -> {time, kind, x, y}
     let start = null, raf = 0, stopped = false, fired = 0, lastFlash = -10;
     const jitter = participants.map(() => rnd() * 6.28);
+    const sr = stepRandom(seed ^ 0x77);
 
     const frame = (now) => {
       if (stopped) return;
@@ -157,6 +158,8 @@ export default {
       }
       const next = fired < events.length ? events[fired] : null;
       const dread = next && t > next.at - 1.2; // напряжение перед событием
+      const aliveIds = participants.filter((p) => !dead.has(p.id)).map((p) => p.id);
+      const threat = next ? threatTarget(aliveIds, next.id, t, next.at - 1.6, next.at - 0.4, (kk) => sr(fired * 37 + kk)) : null;
       const blackout = [...dead.values()].some((d) => d.kind === 'blackout' && t - d.time < 0.7);
       if (next && next.kind !== 'blackout' && t > next.at - 0.35 && lastFlash < next.at - 1) lastFlash = t;
       const lightning = t - lastFlash < 0.12;
@@ -226,7 +229,8 @@ export default {
         ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x + 18 * scale, y + SPRITE_H * scale - 6 * scale, 28 * scale, 4 * scale);
         const fr = winner ? (Math.floor(t * 6) % 2 ? 'cheer' : 'idle') : 'idle';
         drawSprite(ctx, p.person, fr, x + nervous, y + bob, scale);
-        label(ctx, p.name, x + SPRITE_W * scale / 2, y - 14 + bob, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);
+        if (threat === p.id && !winner) drawThreat(ctx, x + 16 * scale, y - 2, 32 * scale, t);
+        label(ctx, p.name, x + SPRITE_W * scale / 2, y - 24 + bob, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);
       });
       particles.draw(ctx, t);
 
@@ -239,9 +243,9 @@ export default {
       ctx.fillStyle = vg; ctx.fillRect(0, 0, w, h);
 
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

@@ -1,6 +1,6 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud } from './scene.js?v=6eebc1b-1545';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, машинки с сидящими персонажами,
 // четыре участка трассы с препятствиями. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -185,9 +185,9 @@ export default {
       if (flashAt === null && leader >= LAPS - 0.01) { flashAt = time; particles.burst(fx + 8, groundY - 40, time, rnd, { count: 70, speed: 260, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff', '#21a038'], life: 1.5 }); }
       if (flashAt !== null) { const a = Math.max(0, 0.8 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

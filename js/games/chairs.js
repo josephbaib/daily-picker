@@ -1,6 +1,6 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust } from './scene.js?v=6eebc1b-1545';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';
@@ -219,9 +219,9 @@ export default {
 
       if (doorOpened === null && leader >= 0.975) { doorOpened = time; if (onEvent) onEvent('pop'); particles.burst(fx + 40, floorY * 0.5, time, rnd, { count: 50, speed: 240, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#ffffff'], life: 1.4 }); }
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

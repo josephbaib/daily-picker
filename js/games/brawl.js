@@ -1,6 +1,6 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { label, makeParticles, drawStands } from './scene.js?v=6eebc1b-1545';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { label, makeParticles, drawStands, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
@@ -170,9 +170,9 @@ export default {
       if (winner) { ctx.fillStyle = 'rgba(255,230,160,0.08)'; ctx.fillRect(0, 0, w, h); if (Math.floor(t * 6) % 3 === 0) particles.burst(w / 2, ringY - 60, t, rnd, { count: 10, speed: 200, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc'], life: 1.3, gravity: 200, size: 4 }); }
 
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 as seededRnd } from '../rng.js?v=6eebc1b-1545';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 as seededRnd } from '../rng.js?v=3e26475-1555';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
@@ -161,4 +161,52 @@ export function drawStands(ctx, x0, yTop, w, rows, t, camX, scale = 2) {
       drawNpcBust(ctx, idx, x + 1 * scale, y - 10 * scale + bob, scale, 32);
     }
   }
+}
+
+// ---------- кадры для трансляции ----------
+// Игры рисуются с пониженной частотой (по умолчанию 24 кадра в секунду): при шаринге экрана
+// кодек звонка не успевает за 60, а ровные 24 передаются без рывков. ?fps=NN в адресе меняет.
+const FPS = Math.max(10, Math.min(60, parseInt(new URLSearchParams(location.search).get('fps') || '24', 10) || 24));
+const FRAME_MS = 1000 / FPS;
+let lastFrameAt = 0;
+export function nextFrame(cb) {
+  return requestAnimationFrame((now) => {
+    if (now - lastFrameAt < FRAME_MS - 2) { cb._raf = nextFrame(cb); return; }
+    lastFrameAt = now;
+    cb(now);
+  });
+}
+export function cancelFrame(id) { cancelAnimationFrame(id); }
+
+// ---------- напряжение: кто следующий ----------
+// Метка угрозы над персонажем: мигающая рамка с треугольником. Ставится на кандидатов по очереди,
+// чтобы зритель гадал, кого выберут, и замирает на жертве перед событием.
+export function drawThreat(ctx, x, y, w, t, color = '#ff5050') {
+  const on = Math.floor(t * 8) % 2 === 0;
+  ctx.strokeStyle = on ? color : 'rgba(255,80,80,0.35)'; ctx.lineWidth = 2;
+  ctx.strokeRect(x - 4, y - 4, w + 8, 8);
+  ctx.fillStyle = on ? color : 'rgba(255,80,80,0.5)';
+  ctx.beginPath(); ctx.moveTo(x + w / 2 - 7, y - 16); ctx.lineTo(x + w / 2 + 7, y - 16); ctx.lineTo(x + w / 2, y - 8); ctx.fill();
+}
+
+// Кто под меткой в момент t: перебор кандидатов с замедлением и остановкой на жертве к моменту stopAt.
+export function threatTarget(candidates, victim, t, startAt, stopAt, rnd) {
+  if (t < startAt) return null;
+  if (t >= stopAt) return victim;
+  const u = (t - startAt) / (stopAt - startAt);
+  const hops = Math.floor(Math.pow(u, 2) * 14);
+  const idx = Math.floor(rnd(hops) * candidates.length);
+  return u > 0.85 ? victim : candidates[idx];
+}
+
+// Детерминированный «случайный» по номеру шага: одинаков у всех зрителей.
+export function stepRandom(seed) {
+  return (k) => { let a = (seed + k * 0x9E3779B1) >>> 0; a = Math.imul(a ^ (a >>> 15), a | 1); a ^= a + Math.imul(a ^ (a >>> 7), a | 61); return ((a ^ (a >>> 14)) >>> 0) / 4294967296; };
+}
+
+// Дым от техники замены: облако из кружков, расходится и тает
+export function drawPuff(ctx, x, y, age, size = 30) {
+  const k = Math.min(1, age / 0.5);
+  ctx.fillStyle = `rgba(230,230,240,${0.9 * (1 - k)})`;
+  for (let i = 0; i < 7; i++) { const a = i * 0.9, r = size * (0.5 + 0.5 * k); ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * k, y + Math.sin(a) * r * k * 0.6, size * 0.45 * (1 - k * 0.4), 0, Math.PI * 2); ctx.fill(); }
 }

@@ -1,6 +1,6 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=6eebc1b-1545';
-import { mulberry32 } from '../rng.js?v=6eebc1b-1545';
-import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc } from './scene.js?v=6eebc1b-1545';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
 
 const SKY = [[30, 24, 80], [80, 40, 110], [190, 80, 100], [245, 140, 90], [255, 205, 120]];
 
@@ -149,9 +149,9 @@ export default {
       if (flashAt !== null) { const a = Math.max(0, 0.9 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
 
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
-      raf = requestAnimationFrame(frame);
+      raf = nextFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
-    return { stop() { stopped = true; cancelAnimationFrame(raf); } };
+    raf = nextFrame(frame);
+    return { stop() { stopped = true; cancelFrame(raf); } };
   },
 };

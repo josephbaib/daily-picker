@@ -1,6 +1,7 @@
-import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3e26475-1555';
+import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];
@@ -126,6 +127,7 @@ export default {
       acc += gaps[i] * k;
     });
     const finalAt = acc + 2.6;
+    const warp = makeWarp(events.map((e) => e.at), n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
     const dead = new Map(); // id -> {time, kind, x, y}
     let start = null, raf = 0, stopped = false, fired = 0, lastFlash = -10;
@@ -135,7 +137,7 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       if (start === null) start = now;
-      const t = (now - start) / 1000;
+      const t = warp((now - start) / 1000);
       const w = canvas.width, h = canvas.height;
 
       const cols = Math.ceil(Math.sqrt(n * 1.8));
@@ -166,7 +168,9 @@ export default {
       const winner = fired === events.length && t >= finalAt - 2.6;
 
       ctx.imageSmoothingEnabled = false;
+      beginCamera(ctx, w, h, t, events.slice(0, fired).map((e) => e.at), (i) => { const pi = participants.findIndex((p) => p.id === events[i].id); return { x: pos[pi].x + SPRITE_W * scale / 2, y: pos[pi].y + SPRITE_H * scale / 2 }; }, { level: 1.35, dur: 0.9, amp: 9 });
       drawHall(ctx, w, h, floorY, t, lightning, dread);
+      drawAmbient(ctx, 'dust', w, h, t, 30);
       // люстра над залом
       const chand = [...dead.values()].find((d) => d.kind === 'chandelier' && t - d.time < 1.5);
       drawChandelier(ctx, w / 2, floorY * 0.1, chand ? Math.min(1, (t - chand.time) / 0.35) * (chand.y - floorY * 0.1 + 20) : 0);
@@ -192,6 +196,7 @@ export default {
         if (d) {
           const age = t - d.time;
           if (age > 1.3) return;
+          impactRing(ctx, x + SPRITE_W * scale / 2, y + SPRITE_H * scale / 2, age, '#ff5050', 90);
           const k2 = Math.min(1, age / 1.0);
           if (d.kind === 'hands') {
             // чёрные руки тянут вниз
@@ -234,6 +239,8 @@ export default {
       });
       particles.draw(ctx, t);
 
+      ctx.restore();
+      if (fired > 0 && t - events[fired - 1].at < 1.0) bigText(ctx, w, h, ['УТАЩИЛИ!', 'ПРИЗРАК!', 'ЛЮСТРА!', 'ТЕМНОТА!', 'МОНСТР!'][KINDS.indexOf(events[fired - 1].kind)] || 'ПРОПАЛ!', t, '#ff6b6b', 30);
       if (blackout) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#ff3030'; const bd = [...dead.values()].find((d) => d.kind === 'blackout' && t - d.time < 0.7); if (bd && Math.floor(t * 10) % 2) { ctx.fillRect(bd.x + 10, bd.y + 20, 8, 6); ctx.fillRect(bd.x + 30, bd.y + 20, 8, 6); } }
       if (lightning) { ctx.fillStyle = 'rgba(220,230,255,0.35)'; ctx.fillRect(0, 0, w, h); }
       if (winner) { ctx.fillStyle = 'rgba(255,230,160,0.10)'; ctx.fillRect(0, 0, w, h); }

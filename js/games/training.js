@@ -1,6 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawThreat, threatTarget, stepRandom, drawPuff, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawThreat, threatTarget, stepRandom, drawPuff, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -10,7 +11,7 @@ const KINDS = ['shuriken', 'fireball', 'clones', 'kunai'];
 export default {
   id: 'training',
   title: 'Полигон',
-  cover: null,
+  cover: 'assets/covers/training.jpg',
   description: 'Тренировочный полигон в лесу, где метка цели прыгает между ниндзя, а техника замены спасает не всех.',
   duration: 22,
   minPlayers: 2,
@@ -43,6 +44,7 @@ export default {
       acc += gaps[i] * k;
     });
     const finalAt = acc + 2.6;
+    const warp = makeWarp(events.map((e) => e.at), n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
     const dead = new Map();
     const logs = []; // брёвна после техники замены
@@ -52,7 +54,7 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       if (start === null) start = now;
-      const t = (now - start) / 1000;
+      const t = warp((now - start) / 1000);
       const w = canvas.width, h = canvas.height;
       const cols = Math.ceil(Math.sqrt(n * 1.8)), rows = Math.ceil(n / cols);
       const groundY = h * 0.62;
@@ -76,10 +78,12 @@ export default {
 
       // лес, вечер, столбы для тренировок, трава
       ctx.imageSmoothingEnabled = false;
+      beginCamera(ctx, w, h, t, events.slice(0, fired).map((e) => e.at), (i) => { const pi = idx.get(events[i].id); return { x: pos[pi].x + SPRITE_W * scale / 2, y: pos[pi].y + SPRITE_H * scale / 2 }; }, { level: 1.35, dur: 0.9, amp: 9 });
       ctx.fillStyle = '#1a2e1e'; ctx.fillRect(0, 0, w, h);
       const sky = ctx.createLinearGradient(0, 0, 0, groundY); sky.addColorStop(0, '#0e1a2a'); sky.addColorStop(1, '#3a4a2a'); ctx.fillStyle = sky; ctx.fillRect(0, 0, w, groundY);
       ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.12, 22, 0, Math.PI * 2); ctx.fill();
       for (let x = -20; x < w; x += 70) { const th = 120 + ((x / 70) % 3) * 40; ctx.fillStyle = '#12261a'; ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x + 35, groundY - th); ctx.lineTo(x + 70, groundY); ctx.fill(); ctx.fillStyle = '#183220'; ctx.beginPath(); ctx.moveTo(x + 8, groundY); ctx.lineTo(x + 35, groundY - th * 0.65); ctx.lineTo(x + 62, groundY); ctx.fill(); }
+      drawAmbient(ctx, 'leaves', w, h, t, 26);
       ctx.fillStyle = '#2f5a30'; ctx.fillRect(0, groundY, w, h - groundY);
       ctx.fillStyle = '#3a6a38'; for (let y = groundY; y < h; y += 12) for (let x = ((y - groundY) / 12 % 2) * 10; x < w; x += 20) ctx.fillRect(x, y, 6, 3);
       [w * 0.08, w * 0.5, w * 0.92].forEach((px) => { ctx.fillStyle = '#5a3a1a'; ctx.fillRect(px - 8, groundY - 120, 16, 130); ctx.fillStyle = '#3a2410'; for (let yy = groundY - 110; yy < groundY; yy += 24) ctx.fillRect(px - 8, yy, 16, 4); });
@@ -95,6 +99,7 @@ export default {
         if (d) {
           const age = t - d.time;
           if (age > 1.5) { ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(x + 14 * scale, y + SPRITE_H * scale - 3 * scale, 36 * scale, 2); return; }
+          impactRing(ctx, x + SPRITE_W * scale / 2, y + SPRITE_H * scale / 2, age, d.kind === 'fireball' ? '#ff8c42' : '#ffffff', 90);
           if (d.kind === 'fireball') { drawSprite(ctx, p.person, 'hurt' + Math.min(5, Math.floor(age * 5)), x, y, scale); if (age < 0.5) { ctx.fillStyle = age < 0.25 ? '#ff8c42' : '#ffd166'; ctx.beginPath(); ctx.arc(x + SPRITE_W * scale / 2, y + SPRITE_H * scale * 0.5, 24 * scale / 2 * (1 + age), 0, Math.PI * 2); ctx.fill(); } }
           else if (d.kind === 'clones') { for (let c = -1; c <= 1; c += 2) { ctx.globalAlpha = Math.max(0, 0.6 - age); drawSprite(ctx, p.person, 'idle', x + c * 30 * scale * Math.min(1, age * 2), y, scale); } ctx.globalAlpha = 1; drawSprite(ctx, p.person, 'hurt' + Math.min(5, Math.floor(age * 4)), x, y, scale); }
           else { drawSprite(ctx, p.person, 'hurt' + Math.min(5, Math.floor(age * 5)), x + (age < 0.3 ? Math.round(Math.sin(age * 60) * 3) : 0), y, scale); if (age < 0.4) { ctx.fillStyle = '#cfd8dc'; for (let s = 0; s < 3; s++) ctx.fillRect(x + 10 * scale + s * 10 * scale, y + 14 * scale + s * 4, 6, 6); } }
@@ -113,7 +118,12 @@ export default {
         if (target === p.id && !winner) drawThreat(ctx, x + 16 * scale, y - 2, SPRITE_W * scale - 32 * scale + 32, t, fakePhase ? '#ffd166' : '#ff5050');
         label(ctx, p.name, x + SPRITE_W * scale / 2, y - 24, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);
       });
+      vignette(ctx, w, h, 0.45);
+      ctx.restore();
       particles.draw(ctx, t);
+      const lastLog = logs.length ? logs[logs.length - 1] : null;
+      if (lastLog && t - lastLog.time < 0.9) bigText(ctx, w, h, 'ЗАМЕНА!', t, '#ffd166', 32);
+      else if (fired > 0 && t - events[fired - 1].at < 0.9) bigText(ctx, w, h, 'ПОПАЛ!', t, '#ff6b6b', 32);
       if (winner) { ctx.fillStyle = 'rgba(255,230,160,0.08)'; ctx.fillRect(0, 0, w, h); }
       ctx.fillStyle = '#fff'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText(`ОСТАЛОСЬ ${alive.length}`, 20, 20);
 

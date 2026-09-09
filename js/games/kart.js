@@ -1,6 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawCloud, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, машинки с сидящими персонажами,
 // четыре участка трассы с препятствиями. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -99,6 +100,7 @@ export default {
   id: 'kart',
   title: 'Картинг',
   description: 'Два круга вокруг офиса на картах: парковка, коридор, столовая и серверная, а на трассе конусы, кофе и рампы.',
+  cover: 'assets/covers/kart.jpg',
   duration: 18,
   minPlayers: 2,
   maxPlayers: 20,
@@ -142,7 +144,10 @@ export default {
       const camX = Math.max(0, startX + leader * L - w * 0.6);
 
       ctx.imageSmoothingEnabled = false;
+      const finishPoint = { x: Math.round(startX + LAPS * L - camX) + 10, y: groundY + 40 };
+      beginCamera(ctx, w, h, time, flashAt !== null ? [flashAt] : [], () => finishPoint, { level: 1.25, dur: 1.1, amp: 10 });
       drawSection(ctx, w, h, camX, L, groundY, time, seed);
+      drawAmbient(ctx, 'leaves', w, h, time, 16, camX);
       // препятствия на каждом круге и линия финиша
       for (let lap = 0; lap < LAPS; lap++) OBSTACLES.forEach(([f, kind]) => { for (let r = 0; r < rows; r++) { const ox = startX + (lap + f) * L - camX + r * 30; if (ox > -80 && ox < w + 80) drawObstacle(ctx, kind, ox, groundY + 22 + r * rowH + rowH * 0.5, time); } });
       const fx = Math.round(startX + LAPS * L - camX);
@@ -182,6 +187,10 @@ export default {
         const first = t >= 1 && k.rank === 0;
         label(ctx, k.p.name, x + 10 * scale, y - jump - 46 * scale - 8, scale >= 3 ? 9 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
+      if (t < 1) { const li = ps.indexOf(leader); const lx = Math.round(startX + ps[li] * L - camX); if (lx > 0 && lx < w) speedLines(ctx, lx - 10, groundY + 22 + karts[li].row * rowH + rowH * 0.5 - 12 * scale, 5, 30); }
+      vignette(ctx, w, h, 0.35);
+      ctx.restore();
+      if (flashAt !== null && time - flashAt < 1.4) bigText(ctx, w, h, 'ФИНИШ!', time);
       if (flashAt === null && leader >= LAPS - 0.01) { flashAt = time; particles.burst(fx + 8, groundY - 40, time, rnd, { count: 70, speed: 260, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff', '#21a038'], life: 1.5 }); }
       if (flashAt !== null) { const a = Math.max(0, 0.8 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

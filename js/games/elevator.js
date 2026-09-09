@@ -1,6 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3e26475-1555';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами
@@ -100,6 +101,7 @@ export default {
     const rounds = victims.map((id, i) => ({ id, at: 0.6 + i * roundLen * k, side: i % 2 }));
     const finalAt = 0.6 + victims.length * roundLen * k + drive * k + 2.2;
     const exited = [];
+    const warp = makeWarp(rounds.map((r) => r.at + (drive + alarmT + openT) * k), n > 10 ? 0.2 : 0.3, 0.45);
     let start = null, raf = 0, stopped = false;
     const dinged = new Set();
     const sr = stepRandom(seed ^ 0x99);
@@ -116,7 +118,7 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       if (start === null) start = now;
-      const t = (now - start) / 1000;
+      const t = warp((now - start) / 1000);
       const w = canvas.width, h = canvas.height;
       const cols = Math.ceil(Math.sqrt(n * 1.6));
       const rowsN = Math.ceil(n / cols);
@@ -148,6 +150,7 @@ export default {
       const travel = travelAt(t);
 
       ctx.imageSmoothingEnabled = false;
+      beginCamera(ctx, w, h, t, exited.map((e) => e.time), () => ({ x: x + cw / 2, y: y + ch / 2 }), { level: 1.3, dur: 0.9, amp: 6 });
       drawBuilding(ctx, w, h, x, cw, y, ch, travel, t, exited, scale);
       const shake = alarm ? Math.round((rnd() - 0.5) * 6) : 0;
       ctx.save(); ctx.translate(shake, 0);
@@ -190,7 +193,13 @@ export default {
       });
       drawCabinFront(ctx, x, y, cw, ch, doors, alarm, t, floorNo);
       ctx.restore();
+      if (doors > 0 && doors < 1) drawAmbient(ctx, 'sparks', w, h, t, 12);
       particles.draw(ctx, t);
+      vignette(ctx, w, h, 0.4);
+      ctx.restore();
+      if (alarm) bigText(ctx, w, h, 'ПЕРЕГРУЗ!', t, '#ff5050', 30);
+      const lastExit = exited.length ? exited[exited.length - 1] : null;
+      if (lastExit && t - lastExit.time < 1.0) bigText(ctx, w, h, 'НА ВЫХОД!', t, '#ffd166', 30);
 
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

@@ -1,6 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawStands, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawStands, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
@@ -10,6 +11,7 @@ export default {
   id: 'brawl',
   title: 'Драка',
   description: 'Королевская битва на ринге под рёв трибун, и последний, кто устоит на ногах, забирает слово.',
+  cover: 'assets/covers/brawl.jpg',
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,
@@ -35,6 +37,7 @@ export default {
     const koAt = new Map(); let acc = 1.6;
     victims.forEach((id, i) => { acc += gaps[i] * k; koAt.set(id, acc); });
     const finalAt = acc + 2.6;
+    const warp = makeWarp([...koAt.values()], n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
 
     // состояние бойцов в нормированных координатах ринга (0..1)
@@ -109,7 +112,7 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       if (start === null) start = now;
-      const t = (now - start) / 1000;
+      const t = warp((now - start) / 1000);
       while (simT + STEP <= t) step(STEP);
       const w = canvas.width, h = canvas.height;
       const scale = Math.max(2, Math.min(4, Math.floor(h / 260)));
@@ -118,6 +121,8 @@ export default {
 
       // зал, трибуны, ринг
       ctx.imageSmoothingEnabled = false;
+      const outs = F.filter((f) => f.out).sort((a, b) => a.out.t - b.out.t);
+      beginCamera(ctx, w, h, simT, outs.map((f) => f.out.t), (i) => ({ x: ringX + outs[i].x * ringW, y: ringY + outs[i].y * ringH - 30 }), { level: 1.3, dur: 0.9, amp: 10 });
       ctx.fillStyle = '#12101c'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = 'rgba(255,240,200,0.06)'; ctx.beginPath(); ctx.moveTo(w * 0.5, 0); ctx.lineTo(w * 0.02, h); ctx.lineTo(w * 0.98, h); ctx.fill();
       drawStands(ctx, 0, h * 0.04, w, 2, t, 0, Math.max(1, scale - 1));
@@ -158,6 +163,7 @@ export default {
         if (f.hitFlash > 0 && Math.floor(f.hitFlash * 30) % 2) ctx.globalAlpha = 0.5;
         drawSprite(ctx, f.p.person, fr, px, py, scale);
         ctx.globalAlpha = 1;
+        if (f.hitFlash > 0) impactRing(ctx, px + SPRITE_W * scale / 2, py + SPRITE_H * scale * 0.45, 0.25 - f.hitFlash, '#ffd166', 50);
         if (f.hitFlash > 0.15) { ctx.fillStyle = '#ffd166'; for (let s = 0; s < 3; s++) { const ang = simT * 20 + s * 2.1; ctx.fillRect(px + SPRITE_W * scale / 2 + Math.cos(ang) * 22, py + 10 * scale + Math.sin(ang) * 12, 5, 5); } }
         // здоровье и имя
         const bw = 44 * scale / 2;
@@ -166,6 +172,8 @@ export default {
         label(ctx, f.p.name, px + SPRITE_W * scale / 2, py - 24, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);
       });
       [0, 1, 2].forEach((i) => { ctx.fillStyle = i === 1 ? 'rgba(255,255,255,0.9)' : 'rgba(229,57,53,0.9)'; ctx.fillRect(ringX - 10, ringY + ringH + 22 + i * 12, ringW + 20, 4); });
+      vignette(ctx, w, h, 0.45);
+      ctx.restore();
       particles.draw(ctx, t);
       if (winner) { ctx.fillStyle = 'rgba(255,230,160,0.08)'; ctx.fillRect(0, 0, w, h); if (Math.floor(t * 6) % 3 === 0) particles.burst(w / 2, ringY - 60, t, rnd, { count: 10, speed: 200, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc'], life: 1.3, gravity: 200, size: 4 }); }
 

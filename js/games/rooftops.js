@@ -1,6 +1,7 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { skyLayer, label, makeParticles, drawCloud, nextFrame, cancelFrame, stepRandom } from './scene.js?v=3e26475-1555';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { skyLayer, label, makeParticles, drawCloud, nextFrame, cancelFrame, stepRandom } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым на башне, тот первым говорит.
@@ -15,7 +16,7 @@ function roofAt(k) { // крыша номер k: высота и цвет по �
 export default {
   id: 'rooftops',
   title: 'Крыши',
-  cover: null,
+  cover: 'assets/covers/rooftops.jpg',
   description: 'Ночная деревня ниндзя, прыжки с крыши на крышу и сюрикены из темноты на пути к башне Хокаге.',
   duration: 15,
   minPlayers: 2,
@@ -62,7 +63,10 @@ export default {
 
       // небо, луна, облака, скала Хокаге и дальние дома
       ctx.imageSmoothingEnabled = false;
+      const towerPoint = { x: Math.round(finishX - camX) + 80, y: baseY - 60 };
+      beginCamera(ctx, w, h, time, flashAt !== null ? [flashAt] : [], () => towerPoint, { level: 1.25, dur: 1.1, amp: 8 });
       ctx.drawImage(skyLayer(w, h, SKY, 4, 'roof'), 0, 0, w, h);
+      drawAmbient(ctx, 'petals', w, h, time, 22, camX);
       ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.78 - camX * 0.02, h * 0.16, 34, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(255,240,200,0.08)'; ctx.beginPath(); ctx.arc(w * 0.78 - camX * 0.02, h * 0.16, 70, 0, Math.PI * 2); ctx.fill();
       for (let i = 0; i < 5; i++) drawCloud(ctx, ((i * 320 - camX * 0.05 + time * 5) % (w + 300)) - 150, h * (0.08 + (i % 3) * 0.08), 8, 'rgba(60,40,90,0.7)');
@@ -125,6 +129,11 @@ export default {
         const first = t >= 1 && r.rank === 0;
         label(ctx, r.p.name, x + sprW / 2, y - 6, scale >= 3 ? 9 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
+      drawAmbient(ctx, 'embers', w, h, time, 18, camX);
+      if (t < 1) { const li = ps.indexOf(leader); const lx = Math.round(startX + ps[li] * L - camX); if (lx > 0 && lx < w) speedLines(ctx, lx - 6, baseY + runners[li].row * rowH + rowH * 0.6 - sprH * 0.6, 5, 28, 'rgba(200,200,255,0.5)'); }
+      vignette(ctx, w, h, 0.45);
+      ctx.restore();
+      if (flashAt !== null && time - flashAt < 1.4) bigText(ctx, w, h, 'ХОКАГЕ!', time, '#ff6b6b');
       if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(fx + 80, baseY - 180, time, rnd, { count: 80, speed: 280, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6 }); }
       if (flashAt !== null) { const a = Math.max(0, 0.8 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 as seededRnd } from '../rng.js?v=3e26475-1555';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 as seededRnd } from '../rng.js?v=3b8b1e8-1658';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
@@ -173,7 +173,7 @@ export function nextFrame(cb) {
   return requestAnimationFrame((now) => {
     if (now - lastFrameAt < FRAME_MS - 2) { cb._raf = nextFrame(cb); return; }
     lastFrameAt = now;
-    cb(now);
+    try { cb(now); } catch (e) { console.error('кадр упал', e); if (window.__errs) window.__errs.push(String(e && e.stack || e)); throw e; }
   });
 }
 export function cancelFrame(id) { cancelAnimationFrame(id); }

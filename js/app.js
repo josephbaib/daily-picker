@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js?v=3e26475-1555';
-import { computeOrder } from './order.js?v=3e26475-1555';
-import { randomSeed } from './rng.js?v=3e26475-1555';
-import { GAMES, gameById, pickGame } from './games/index.js?v=3e26475-1555';
-import { sound } from './sound.js?v=3e26475-1555';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=3e26475-1555';
-import { mountResult } from './ui/result.js?v=3e26475-1555';
-import * as db from './db.js?v=3e26475-1555';
-import { NPCS } from './games/scene.js?v=3e26475-1555';
+import { personFor, preload } from './sprite.js?v=3b8b1e8-1658';
+import { computeOrder } from './order.js?v=3b8b1e8-1658';
+import { randomSeed } from './rng.js?v=3b8b1e8-1658';
+import { GAMES, gameById, pickGame } from './games/index.js?v=3b8b1e8-1658';
+import { sound } from './sound.js?v=3b8b1e8-1658';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=3b8b1e8-1658';
+import { mountResult } from './ui/result.js?v=3b8b1e8-1658';
+import * as db from './db.js?v=3b8b1e8-1658';
+import { NPCS } from './games/scene.js?v=3b8b1e8-1658';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -174,7 +174,7 @@ async function boot() {
   function setState(s) { state = s; updateStart(); }
 
   // ---------- Холст ----------
-  const fit = () => { const g = $('#game'); if (g.hidden || !g.clientWidth) return; canvas.width = g.clientWidth; canvas.height = g.clientHeight; };
+  const fit = () => { const g = $('#game'); if (g.hidden) return; canvas.width = g.clientWidth || innerWidth || 1280; canvas.height = g.clientHeight || innerHeight || 720; };
   new ResizeObserver(fit).observe($('#game'));
 
   // ---------- Старт ----------

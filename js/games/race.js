@@ -1,6 +1,7 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 const SKY = [[30, 24, 80], [80, 40, 110], [190, 80, 100], [245, 140, 90], [255, 205, 120]];
 
@@ -65,6 +66,8 @@ export default {
       const ps = runners.map((r) => progress(r, t));
       const leader = Math.max(...ps);
       const camX = Math.max(0, Math.min(finishX + 220 - w, startX + leader * L - w * 0.6));
+      const finishPoint = { x: Math.round(finishX - camX) + 8, y: trackTop + rowH };
+      beginCamera(ctx, w, h, time, flashAt !== null ? [flashAt] : [], () => finishPoint, { level: 1.25, dur: 1.1, amp: 10 });
 
       // небо, солнце, облака, город
       ctx.imageSmoothingEnabled = false;
@@ -145,6 +148,11 @@ export default {
         label(ctx, r.p.name, x + sprW / 2, y - 4, scale >= 3 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
 
+      drawAmbient(ctx, 'dust', w, h, time, 24, camX);
+      if (flashAt !== null) drawAmbient(ctx, 'confetti', w, h, time, 70);
+      vignette(ctx, w, h, 0.4);
+      ctx.restore();
+      if (flashAt !== null && time - flashAt < 1.4) bigText(ctx, w, h, 'ФИНИШ!', time);
       if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(fx + 8, trackTop - 40, time, rnd, { count: 80, speed: 280, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#f4ecd8', '#21a038'], life: 1.6 }); }
       if (flashAt !== null) { const a = Math.max(0, 0.9 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
 

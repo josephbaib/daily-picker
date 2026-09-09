@@ -1,6 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3e26475-1555';
-import { mulberry32 } from '../rng.js?v=3e26475-1555';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=3e26475-1555';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=3b8b1e8-1658';
+import { mulberry32 } from '../rng.js?v=3b8b1e8-1658';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=3b8b1e8-1658';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=3b8b1e8-1658';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';
@@ -183,7 +184,10 @@ export default {
       const camX = Math.max(0, Math.min(finishX + 260 - w, startX + leader * L - w * 0.6));
 
       ctx.imageSmoothingEnabled = false;
+      const doorPoint = { x: Math.round(finishX - camX) + 60, y: floorY };
+      beginCamera(ctx, w, h, time, doorOpened !== null ? [doorOpened] : [], () => doorPoint, { level: 1.25, dur: 1.1, amp: 8 });
       drawCorridor(ctx, w, h, camX, time, floorY);
+      drawAmbient(ctx, 'paper', w, h, time, 14, camX);
       // переговорка в конце коридора
       const fx = Math.round(finishX - camX);
       const open = doorOpened !== null ? Math.min(1, (time - doorOpened) * 3) : 0;
@@ -217,6 +221,9 @@ export default {
         label(ctx, r.p.name, x + 12 * scale, y - 46 * scale, scale >= 4 ? 10 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
       });
 
+      vignette(ctx, w, h, 0.35);
+      ctx.restore();
+      if (doorOpened !== null && time - doorOpened < 1.4) bigText(ctx, w, h, 'ПЕРЕГОВОРКА!', time, '#6ec85a', 28);
       if (doorOpened === null && leader >= 0.975) { doorOpened = time; if (onEvent) onEvent('pop'); particles.burst(fx + 40, floorY * 0.5, time, rnd, { count: 50, speed: 240, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#ffffff'], life: 1.4 }); }
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

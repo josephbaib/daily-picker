@@ -1,6 +1,6 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=ca3d9c3-2332';
-import { mulberry32 } from '../rng.js?v=ca3d9c3-2332';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust } from './scene.js?v=ca3d9c3-2332';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=0a3148a-1452';
+import { mulberry32 } from '../rng.js?v=0a3148a-1452';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust } from './scene.js?v=0a3148a-1452';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';

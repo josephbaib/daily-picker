@@ -1,6 +1,6 @@
-import { hashString, mulberry32 } from './rng.js?v=ca3d9c3-2332';
-import { ROSTER } from './roster.js?v=ca3d9c3-2332';
-import { buildSheet, sheetOf, frameRect, LPC_CELL, preload, keyOf } from './lpc.js?v=ca3d9c3-2332';
+import { hashString, mulberry32 } from './rng.js?v=0a3148a-1452';
+import { ROSTER } from './roster.js?v=0a3148a-1452';
+import { buildSheet, sheetOf, frameRect, LPC_CELL, preload, keyOf } from './lpc.js?v=0a3148a-1452';
 
 // Персонаж занимает ячейку 64×64; тело внутри примерно 32 в ширину и 56 в высоту.
 export const SPRITE_W = LPC_CELL;

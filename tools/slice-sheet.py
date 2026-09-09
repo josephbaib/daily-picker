@@ -91,6 +91,30 @@ for srow, lrow in MAP.items():
         lying = lrow == 20 and c >= 3
         maxh, maxw = (30, 60) if lying else (58, 46)
         k = min(maxh / sp.height, maxw / sp.width, 1.0)
-        sp = sp.resize((max(1, round(sp.width * k)), max(1, round(sp.height * k))), Image.LANCZOS)
+        sp = sp.resize((max(1, round(sp.width * k)), max(1, round(sp.height * k))), Image.BOX if k < 0.85 else Image.NEAREST)
         out.alpha_composite(sp, (int(c * 64 + 32 - sp.width / 2), int(lrow * 64 + 61 - sp.height)))
+# ---- чистка под пиксель-арт: жёсткая альфа, палитра из 28 цветов, тёмный контур как у набора
+def clean(sheet):
+    px = sheet.load(); W2, H2 = sheet.size
+    for y in range(H2):
+        for x in range(W2):
+            r, g, b, a = px[x, y]
+            if a < 140 or (a < 255 and min(r, g, b) > 200): px[x, y] = (0, 0, 0, 0)
+            else: px[x, y] = (r, g, b, 255)
+    rgb = sheet.convert('RGB').quantize(colors=44, method=Image.MEDIANCUT, dither=Image.NONE).convert('RGB')
+    q = rgb.load()
+    for y in range(H2):
+        for x in range(W2):
+            if px[x, y][3]: px[x, y] = q[x, y] + (255,)
+    # контур: прозрачный пиксель рядом с непрозрачным становится тёмным
+    outline = []
+    for y in range(H2):
+        for x in range(W2):
+            if px[x, y][3]: continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < W2 and 0 <= ny < H2 and px[nx, ny][3] and (nx // 64 == x // 64) and (ny // 64 == y // 64): outline.append((x, y)); break
+    for x, y in outline: px[x, y] = (34, 24, 38, 255)
+    return sheet
+out = clean(out)
 out.save(sys.argv[2]); print('ok', sys.argv[2])

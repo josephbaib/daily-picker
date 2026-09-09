@@ -1,7 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { label, makeParticles, drawThreat, threatTarget, stepRandom, drawPuff, nextFrame, cancelFrame } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { label, makeParticles, drawThreat, threatTarget, stepRandom, drawPuff, nextFrame, cancelFrame } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -76,18 +76,43 @@ export default {
         if (cur.fake && t >= fakeAt && !cur.fakeDone) { cur.fakeDone = true; logs.push({ id: cur.fake, time: t, x: pos[idx.get(cur.fake)].x, y: pos[idx.get(cur.fake)].y }); if (onEvent) onEvent('whoosh'); }
       }
 
-      // лес, вечер, столбы для тренировок, трава
+      // лес, вечер: три плана. Дальний: небо, луна, горы в дымке. Средний: два ряда деревьев, ворота, фонари.
+      // Ближний: трава с кочками и цветами, камни, столбы с верёвками и мишенями.
       ctx.imageSmoothingEnabled = false;
       beginCamera(ctx, w, h, t, events.slice(0, fired).map((e) => e.at), (i) => { const pi = idx.get(events[i].id); return { x: pos[pi].x + SPRITE_W * scale / 2, y: pos[pi].y + SPRITE_H * scale / 2 }; }, { level: 1.35, dur: 0.9, amp: 9 });
-      ctx.fillStyle = '#1a2e1e'; ctx.fillRect(0, 0, w, h);
-      const sky = ctx.createLinearGradient(0, 0, 0, groundY); sky.addColorStop(0, '#0e1a2a'); sky.addColorStop(1, '#3a4a2a'); ctx.fillStyle = sky; ctx.fillRect(0, 0, w, groundY);
-      ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.12, 22, 0, Math.PI * 2); ctx.fill();
-      for (let x = -20; x < w; x += 70) { const th = 120 + ((x / 70) % 3) * 40; ctx.fillStyle = '#12261a'; ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x + 35, groundY - th); ctx.lineTo(x + 70, groundY); ctx.fill(); ctx.fillStyle = '#183220'; ctx.beginPath(); ctx.moveTo(x + 8, groundY); ctx.lineTo(x + 35, groundY - th * 0.65); ctx.lineTo(x + 62, groundY); ctx.fill(); }
-      drawAmbient(ctx, 'leaves', w, h, t, 26);
+      const sky = ctx.createLinearGradient(0, 0, 0, groundY); sky.addColorStop(0, '#0a1424'); sky.addColorStop(0.6, '#2a3a3a'); sky.addColorStop(1, '#8a5a3a'); ctx.fillStyle = sky; ctx.fillRect(0, 0, w, groundY);
+      for (let i = 0; i < 40; i++) { ctx.fillStyle = (i * 7 + Math.floor(t * 2)) % 5 ? '#e8e8ff' : '#6a6a8a'; ctx.fillRect((i * 173) % w, (i * 91) % (groundY * 0.5), 2, 2); }
+      ctx.fillStyle = 'rgba(255,230,160,0.15)'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.12, 44, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.85, h * 0.12, 22, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#e8d488'; ctx.beginPath(); ctx.arc(w * 0.85 + 6, h * 0.12 - 4, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#233a42'; ctx.beginPath(); ctx.moveTo(0, groundY); for (let x = -40; x < w + 200; x += 220) { ctx.lineTo(x + 80, groundY - groundY * 0.5); ctx.lineTo(x + 160, groundY - groundY * 0.3); } ctx.lineTo(w, groundY); ctx.fill();
+      ctx.fillStyle = 'rgba(200,220,220,0.12)'; ctx.fillRect(0, groundY * 0.55, w, groundY * 0.2);
+      // дальний ряд деревьев: тёмные силуэты
+      for (let x = -30; x < w; x += 54) { const th = groundY * (0.45 + ((x / 54) % 3) * 0.08); ctx.fillStyle = '#12261a'; ctx.beginPath(); ctx.moveTo(x, groundY); ctx.lineTo(x + 27, groundY - th); ctx.lineTo(x + 54, groundY); ctx.fill(); }
+      // средний ряд: сосны в три тона со стволами
+      for (let x = -20; x < w; x += 92) {
+        const th = groundY * (0.55 + ((x / 92) % 2) * 0.1), sway = Math.sin(t * 1.2 + x * 0.02) * 3;
+        ctx.fillStyle = '#4a2e18'; ctx.fillRect(x + 40, groundY - th * 0.5, 12, th * 0.5);
+        [[0, '#16351f'], [1, '#1f4a2a'], [2, '#2c6238']].forEach(([k, c]) => { ctx.fillStyle = c; for (let tier = 0; tier < 3; tier++) { const ty = groundY - th + tier * th * 0.22, tw = 30 + tier * 12 - k * 6; ctx.beginPath(); ctx.moveTo(x + 46 - tw + sway * (1 - tier * 0.3), ty + th * 0.3); ctx.lineTo(x + 46 + sway * (1 - tier * 0.3), ty); ctx.lineTo(x + 46 + tw + sway * (1 - tier * 0.3), ty + th * 0.3); ctx.fill(); } });
+      }
+      // ворота тории и фонари на верёвке
+      ctx.fillStyle = '#a02828'; ctx.fillRect(w * 0.42, groundY * 0.3, 10, groundY * 0.7); ctx.fillRect(w * 0.58, groundY * 0.3, 10, groundY * 0.7); ctx.fillRect(w * 0.4, groundY * 0.28, w * 0.2, 10); ctx.fillRect(w * 0.41, groundY * 0.36, w * 0.18, 6);
+      ctx.fillStyle = '#c83a3a'; ctx.fillRect(w * 0.42, groundY * 0.3, 3, groundY * 0.7); ctx.fillRect(w * 0.4, groundY * 0.28, w * 0.2, 3);
+      ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(w * 0.05, groundY * 0.22); ctx.quadraticCurveTo(w * 0.5, groundY * 0.34, w * 0.95, groundY * 0.22); ctx.stroke();
+      for (let i = 0; i < 7; i++) { const u = 0.08 + i * 0.14, lx = w * u, ly = groundY * (0.22 + Math.sin(u * Math.PI) * 0.09) + Math.sin(t * 2 + i) * 3, fl = 0.7 + 0.3 * Math.sin(t * 7 + i); ctx.fillStyle = `rgba(255,140,60,${0.12 * fl})`; ctx.beginPath(); ctx.arc(lx, ly + 12, 26, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#c83a2a'; ctx.fillRect(lx - 7, ly, 14, 22); ctx.fillStyle = '#ff9a4a'; ctx.fillRect(lx - 5, ly + 4, 10, 14); ctx.fillStyle = '#3a2a1a'; ctx.fillRect(lx - 8, ly - 2, 16, 3); ctx.fillRect(lx - 8, ly + 22, 16, 3); }
+      // земля: трава в два тона, кочки, цветы, тропа, камни
       ctx.fillStyle = '#2f5a30'; ctx.fillRect(0, groundY, w, h - groundY);
       ctx.fillStyle = '#3a6a38'; for (let y = groundY; y < h; y += 12) for (let x = ((y - groundY) / 12 % 2) * 10; x < w; x += 20) ctx.fillRect(x, y, 6, 3);
-      [w * 0.08, w * 0.5, w * 0.92].forEach((px) => { ctx.fillStyle = '#5a3a1a'; ctx.fillRect(px - 8, groundY - 120, 16, 130); ctx.fillStyle = '#3a2410'; for (let yy = groundY - 110; yy < groundY; yy += 24) ctx.fillRect(px - 8, yy, 16, 4); });
-      ctx.fillStyle = '#e8d8a0'; ctx.fillRect(w * 0.5 - 60, groundY - 200, 120, 30); ctx.fillStyle = '#e53935'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2B 忍', w * 0.5 - 40, groundY - 190);
+      ctx.fillStyle = '#6a5a3a'; ctx.beginPath(); ctx.moveTo(w * 0.3, groundY); ctx.lineTo(w * 0.7, groundY); ctx.lineTo(w * 0.85, h); ctx.lineTo(w * 0.15, h); ctx.fill(); ctx.fillStyle = '#5a4a2e'; for (let i = 0; i < 30; i++) ctx.fillRect(w * 0.2 + ((i * 97) % (w * 0.6)), groundY + ((i * 53) % (h - groundY)), 4, 2);
+      ctx.fillStyle = '#4c8a48'; for (let i = 0; i < 40; i++) { const gx = (i * 131) % w, gy = groundY + 6 + ((i * 67) % (h - groundY - 10)); ctx.fillRect(gx, gy - 4, 2, 4); ctx.fillRect(gx + 3, gy - 6, 2, 6); ctx.fillRect(gx + 6, gy - 3, 2, 3); }
+      for (let i = 0; i < 14; i++) { const fx = (i * 211) % w, fy = groundY + 10 + ((i * 89) % (h - groundY - 16)); ctx.fillStyle = i % 2 ? '#f0d060' : '#f08ab0'; ctx.fillRect(fx, fy, 3, 3); ctx.fillStyle = '#fff'; ctx.fillRect(fx + 1, fy + 1, 1, 1); }
+      [[w * 0.12, h - 30], [w * 0.88, h - 50], [w * 0.5, h - 18]].forEach(([rx, ry]) => { ctx.fillStyle = '#6a6a72'; ctx.fillRect(rx, ry, 26, 14); ctx.fillStyle = '#8a8a94'; ctx.fillRect(rx + 4, ry, 18, 4); ctx.fillStyle = '#3a3a42'; ctx.fillRect(rx, ry + 12, 26, 2); });
+      // столбы для тренировок: древесина, верёвки, кунаи, мишени
+      [w * 0.08, w * 0.5, w * 0.92].forEach((px, i) => { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(px - 12, groundY + 6, 24, 5); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(px - 8, groundY - 120, 16, 130); ctx.fillStyle = '#7a5230'; ctx.fillRect(px - 8, groundY - 120, 4, 130); ctx.fillStyle = '#3a2410'; for (let yy = groundY - 110; yy < groundY; yy += 24) ctx.fillRect(px - 8, yy, 16, 3); ctx.fillStyle = '#c9a86a'; for (let yy = groundY - 100; yy < groundY - 60; yy += 6) ctx.fillRect(px - 9, yy, 18, 3); ctx.fillStyle = '#cfd8dc'; ctx.fillRect(px + 4, groundY - 50 + i * 8, 14, 3); ctx.fillStyle = '#3a2a1a'; ctx.fillRect(px + 14, groundY - 51 + i * 8, 6, 5); if (i !== 1) { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, groundY - 130, 16, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#e53935'; ctx.beginPath(); ctx.arc(px, groundY - 130, 10, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, groundY - 130, 4, 0, Math.PI * 2); ctx.fill(); } });
+      ctx.fillStyle = '#2a1a10'; ctx.fillRect(w * 0.5 - 4, groundY - 240, 8, 50); ctx.fillStyle = '#e8d8a0'; ctx.fillRect(w * 0.5 - 60, groundY - 200, 120, 30); ctx.fillStyle = '#c9b070'; ctx.fillRect(w * 0.5 - 60, groundY - 200, 120, 4); ctx.fillStyle = '#e53935'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2B 忍', w * 0.5 - 40, groundY - 190);
+      // ворона на столбе и светлячки
+      ctx.fillStyle = '#111'; ctx.fillRect(w * 0.92 - 6, groundY - 122 - (Math.floor(t * 2) % 2 ? 1 : 0), 12, 6); ctx.fillRect(w * 0.92 + 4, groundY - 126, 6, 5);
+      drawAmbient(ctx, 'embers', w, h, t, 14);
+      drawAmbient(ctx, 'leaves', w, h, t, 20);
 
       // брёвна от техники замены: лежат там, где стоял человек
       logs.forEach((lg) => { const age = t - lg.time; ctx.fillStyle = '#7a4a24'; ctx.fillRect(lg.x + 6 * scale, lg.y + SPRITE_H * scale - 14 * scale, 26 * scale, 10 * scale); ctx.fillStyle = '#b07a40'; ctx.fillRect(lg.x + 6 * scale, lg.y + SPRITE_H * scale - 14 * scale, 26 * scale, 2 * scale); if (age < 0.6) drawPuff(ctx, lg.x + SPRITE_W * scale / 2, lg.y + SPRITE_H * scale * 0.5, age, 24 * scale / 2); });

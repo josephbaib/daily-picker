@@ -1,4 +1,4 @@
-import { portraitCanvas, personFor } from '../sprite.js?v=018888a-1722';
+import { portraitCanvas, personFor } from '../sprite.js?v=ed139c8-1737';
 
 function shortId() { return Math.random().toString(36).slice(2, 8); }
 

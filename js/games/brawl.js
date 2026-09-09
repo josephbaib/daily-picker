@@ -1,7 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { label, makeParticles, drawStands, nextFrame, cancelFrame } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { label, makeParticles, drawStands, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
@@ -119,21 +119,40 @@ export default {
       const ringX = w * 0.12, ringY = h * 0.4, ringW = w * 0.76, ringH = h * 0.5;
       const winner = koCount === victims.length && t >= finalAt - 2.6;
 
-      // зал, трибуны, ринг
+      // зал: три плана. Дальний: темнота с прожекторами и большим экраном. Средний: трибуны, баннеры, судейский стол.
+      // Ближний: ринг с холстом, канатами, угловыми столбами, юбкой и зрителями у ринга.
       ctx.imageSmoothingEnabled = false;
+      const ringTop = ringY, ringBottom = ringY + ringH;
       const outs = F.filter((f) => f.out).sort((a, b) => a.out.t - b.out.t);
       beginCamera(ctx, w, h, simT, outs.map((f) => f.out.t), (i) => ({ x: ringX + outs[i].x * ringW, y: ringY + outs[i].y * ringH - 30 }), { level: 1.3, dur: 0.9, amp: 10 });
-      ctx.fillStyle = '#12101c'; ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = 'rgba(255,240,200,0.06)'; ctx.beginPath(); ctx.moveTo(w * 0.5, 0); ctx.lineTo(w * 0.02, h); ctx.lineTo(w * 0.98, h); ctx.fill();
-      drawStands(ctx, 0, h * 0.04, w, 2, t, 0, Math.max(1, scale - 1));
-      ctx.fillStyle = '#ffd166'; ctx.fillRect(w / 2 - 110, h * 0.02, 220, 22); ctx.fillStyle = '#111'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2Bсосы FIGHT NIGHT', w / 2 - 100, h * 0.02 + 7);
-      ctx.fillStyle = '#2a2436'; ctx.fillRect(ringX - 24, ringY - 34, ringW + 48, ringH + 70);
-      ctx.fillStyle = '#d8cfb6'; ctx.fillRect(ringX - 10, ringY - 24, ringW + 20, ringH + 44);
-      ctx.fillStyle = '#21a038'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, ringY + ringH / 2, 46, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d8cfb6'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, ringY + ringH / 2, 34, 0, Math.PI * 2); ctx.fill();
-      [0, 1, 2].forEach((i) => { ctx.fillStyle = i === 1 ? '#fff' : '#e53935'; ctx.fillRect(ringX - 10, ringY - 36 - i * 14, ringW + 20, 4); });
-      ctx.fillStyle = '#eee'; [ringX - 10, ringX + ringW + 10].forEach((px) => ctx.fillRect(px - 5, ringY - 76, 10, 96));
+      ctx.fillStyle = '#0c0a14'; ctx.fillRect(0, 0, w, h);
+      // прожекторы: три луча медленно ходят
+      [[0.2, 0.8], [0.5, 1.3], [0.8, 0.6]].forEach(([fx, sp], i) => { const sx = w * fx + Math.sin(t * sp + i) * w * 0.1; ctx.fillStyle = 'rgba(255,240,200,0.07)'; ctx.beginPath(); ctx.moveTo(w * fx, -10); ctx.lineTo(sx - 90, ringBottom); ctx.lineTo(sx + 90, ringBottom); ctx.fill(); ctx.fillStyle = '#3a3a48'; ctx.fillRect(w * fx - 10, 0, 20, 12); ctx.fillStyle = '#fff6d0'; ctx.fillRect(w * fx - 6, 10, 12, 4); });
+      // фермы под потолком и большой экран
+      ctx.fillStyle = '#2a2a38'; ctx.fillRect(0, 14, w, 4); for (let x = 0; x < w; x += 40) { ctx.fillRect(x, 14, 2, 14); ctx.fillRect(x + 20, 26, 22, 2); }
+      ctx.fillStyle = '#101018'; ctx.fillRect(w / 2 - 150, 30, 300, 62); ctx.fillStyle = '#1c1c2c'; ctx.fillRect(w / 2 - 146, 34, 292, 54);
+      ctx.fillStyle = '#ffd166'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2Bсосы FIGHT NIGHT', w / 2 - 110, 42); ctx.fillStyle = '#ff5050'; ctx.fillText(`K.O. ${koCount} / ${victims.length}`, w / 2 - 60, 64);
+      ctx.fillStyle = 'rgba(255,209,102,0.08)'; ctx.fillRect(w / 2 - 170, 92, 340, 30);
+      drawStands(ctx, 0, h * 0.14, w, 2, t, 0, Math.max(1, scale - 1));
+      // баннеры и вспышки камер на трибунах
+      for (let x = 20; x < w; x += 220) { ctx.fillStyle = '#21a038'; ctx.fillRect(x, h * 0.1, 120, 18); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.fillText('СБЕР', x + 40, h * 0.1 + 5); }
+      for (let i = 0; i < 6; i++) if (Math.floor(t * 9 + i * 3) % 11 === 0) { ctx.fillStyle = '#fff'; ctx.fillRect((i * 173 + 40) % w, h * 0.16 + (i % 2) * 24, 8, 6); }
+      // судейский стол и зрители у ринга
+      ctx.fillStyle = '#2a2436'; ctx.fillRect(ringX - 24, ringTop - 34, ringW + 48, ringBottom - ringTop + 70);
+      ctx.fillStyle = '#1a1626'; ctx.fillRect(0, ringBottom + 40, w, h - ringBottom - 40);
+      for (let x = 30; x < w; x += 70) drawNpcBust(ctx, Math.floor(x / 70) % 12, x, ringBottom + 44 + Math.round(Math.sin(t * 6 + x) * 2), 1, 30);
+      ctx.fillStyle = '#3a2a1a'; ctx.fillRect(w / 2 - 90, ringBottom + 30, 180, 12); ctx.fillStyle = '#fff'; ctx.fillRect(w / 2 - 90, ringBottom + 30, 180, 3); drawNpcBust(ctx, 5, w / 2 - 40, ringBottom + 2, 1, 30); drawNpcBust(ctx, 8, w / 2 + 10, ringBottom + 2, 1, 30);
+      // ринг: юбка с логотипом, холст с текстурой и пятнами, углы, канаты
+      ctx.fillStyle = '#1e2a6a'; ctx.fillRect(ringX - 10, ringBottom + 8, ringW + 20, 30); ctx.fillStyle = '#21a038'; ctx.fillRect(ringX + ringW / 2 - 40, ringBottom + 14, 80, 18); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.fillText('B2B', ringX + ringW / 2 - 12, ringBottom + 19);
+      ctx.fillStyle = '#d8cfb6'; ctx.fillRect(ringX - 10, ringTop - 20, ringW + 20, ringBottom - ringTop + 40);
+      ctx.fillStyle = '#cfc4a8'; for (let y = ringTop - 20; y < ringBottom + 20; y += 8) for (let x = ringX - 10 + ((y / 8) % 2) * 6; x < ringX + ringW + 10; x += 12) ctx.fillRect(x, y, 4, 2);
+      ctx.fillStyle = 'rgba(120,80,60,0.18)'; [[0.3, 0.4, 22], [0.7, 0.6, 16], [0.5, 0.8, 12]].forEach(([fx, fy, r]) => { ctx.beginPath(); ctx.ellipse(ringX + ringW * fx, ringTop + ringH * fy, r, r * 0.5, 0, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = '#e8e0cc'; ctx.fillRect(ringX - 10, ringTop - 20, ringW + 20, 3); ctx.fillStyle = '#b8ad92'; ctx.fillRect(ringX - 10, ringBottom + 17, ringW + 20, 3);
+      ctx.fillStyle = '#21a038'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, (ringTop + ringBottom) / 2, 46, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d8cfb6'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, (ringTop + ringBottom) / 2, 34, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#21a038'; ctx.fillRect(ringX + ringW / 2 - 8, (ringTop + ringBottom) / 2 - 8, 16, 16);
+      [0, 1, 2].forEach((i) => { ctx.fillStyle = i === 1 ? '#fff' : '#e53935'; ctx.fillRect(ringX - 10, ringTop - 36 - i * 14, ringW + 20, 4); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(ringX - 10, ringTop - 33 - i * 14, ringW + 20, 1); for (let x = ringX + 30; x < ringX + ringW; x += 120) { ctx.fillStyle = '#c9c9d0'; ctx.fillRect(x, ringTop - 38 - i * 14, 6, 8); } });
+      [ringX - 10, ringX + ringW + 10].forEach((px, i) => { ctx.fillStyle = '#c9c9d0'; ctx.fillRect(px - 5, ringTop - 76, 10, 96); ctx.fillStyle = '#8a8a94'; ctx.fillRect(px + 2, ringTop - 76, 3, 96); ctx.fillStyle = i ? '#3c8cdc' : '#e53935'; ctx.fillRect(px - 9, ringTop - 78, 18, 30); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(px - 9, ringTop - 78, 4, 30); });
       // счётчик нокаутов и надпись FIGHT
-      ctx.fillStyle = '#fff'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.fillText(`K.O. ${koCount} / ${victims.length}`, 20, h * 0.36);
+
       if (t < 1.4) { ctx.fillStyle = Math.floor(t * 8) % 2 ? '#ffd166' : '#ff6b6b'; ctx.font = "48px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.fillText('FIGHT!', w / 2, h * 0.5); ctx.textAlign = 'left'; }
       if (simT - lastKo < 0.8 && koCount > 0) { ctx.fillStyle = '#ff6b6b'; ctx.font = "40px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.fillText('K.O.', w / 2, h * 0.3); ctx.textAlign = 'left'; }
 

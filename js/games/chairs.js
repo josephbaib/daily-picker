@@ -1,7 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';
@@ -62,7 +62,7 @@ function drawSegment(ctx, kind, x, floorY, t, idx) {
     ctx.fillStyle = '#e4ecf2'; ctx.fillRect(x + 16, floorY * 0.26, SEG - 32, floorY * 0.6);
     ctx.fillStyle = '#b9c8d6'; ctx.fillRect(x + 16, floorY * 0.26, SEG - 32, 4);
     ctx.fillStyle = '#1d2230'; ctx.fillRect(x + 40, floorY * 0.32, 90, 56); ctx.fillStyle = '#3aa0ff'; ctx.fillRect(x + 44, floorY * 0.32 + 4, 82, 48);
-    ctx.fillStyle = '#21a038'; for (let i = 0; i < 6; i++) ctx.fillRect(x + 50 + i * 12, floorY * 0.32 + 44 - (8 + (i * 7) % 30), 8, 8 + (i * 7) % 30);
+    ctx.fillStyle = '#21a038'; for (let i = 0; i < 6; i++) { const bh = 8 + (i * 7) % 30 + Math.round(Math.sin(t * 2 + i) * 3); ctx.fillRect(x + 50 + i * 12, floorY * 0.32 + 44 - bh, 8, bh); } ctx.fillStyle = '#fff'; ctx.fillRect(x + 48, floorY * 0.32 + 44, 74, 1);
     ctx.fillStyle = '#c9b89a'; ctx.fillRect(x + 150, floorY * 0.6, 200, 10); ctx.fillStyle = '#a58f6e'; ctx.fillRect(x + 160, floorY * 0.6 + 10, 8, 30); ctx.fillRect(x + 332, floorY * 0.6 + 10, 8, 30);
     [0, 1, 2].forEach((i) => drawNpcBust(ctx, idx * 4 + i, x + 160 + i * 64, floorY * 0.6 - 44, 1, 30));
     ctx.fillStyle = '#fff'; ctx.fillRect(x + 150, floorY * 0.62, 30, 2); ctx.fillRect(x + 240, floorY * 0.62, 30, 2);
@@ -74,7 +74,7 @@ function drawSegment(ctx, kind, x, floorY, t, idx) {
     ctx.fillStyle = '#c9b89a'; ctx.fillRect(x + 120, floorY * 0.62, 240, 10); ctx.fillStyle = '#a58f6e'; ctx.fillRect(x + 120, floorY * 0.62 + 10, 240, floorY * 0.24);
     ctx.fillStyle = '#2a2a30'; ctx.fillRect(x + 140, floorY * 0.62 - 50, 40, 50); ctx.fillStyle = '#ff5050'; ctx.fillRect(x + 146, floorY * 0.62 - 42, 6, 6); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 154, floorY * 0.62 - 20, 14, 10);
     ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 200, floorY * 0.62 - 30, 50, 30); ctx.fillStyle = '#222'; ctx.fillRect(x + 206, floorY * 0.62 - 24, 30, 18);
-    ctx.fillStyle = '#fff'; [270, 292, 314].forEach((dx) => ctx.fillRect(x + dx, floorY * 0.62 - 14, 12, 14));
+    ctx.fillStyle = '#fff'; [270, 292, 314].forEach((dx, j) => { ctx.fillRect(x + dx, floorY * 0.62 - 14, 12, 14); for (let k = 0; k < 3; k++) { ctx.fillStyle = `rgba(255,255,255,${0.35 - k * 0.1})`; ctx.fillRect(x + dx + 4 + Math.sin(t * 3 + k + j) * 2, floorY * 0.62 - 22 - k * 7 - ((t * 15 + j * 5) % 7), 3, 5); } ctx.fillStyle = '#fff'; });
     drawNpc(ctx, idx + 9, 'back', x + 330, floorY * 0.86 - 64 * 1.4 + 4, 1.4);
   } else if (kind === 3) {
     // ресепшен: стойка, логотип, кресла
@@ -88,7 +88,7 @@ function drawSegment(ctx, kind, x, floorY, t, idx) {
     // принтерная и шкафы с папками
     ctx.fillStyle = '#ede8dc'; ctx.fillRect(x + 16, floorY * 0.26, SEG - 32, floorY * 0.6);
     for (let sx = x + 30; sx < x + 200; sx += 60) { ctx.fillStyle = '#8a6a4a'; ctx.fillRect(sx, floorY * 0.3, 50, floorY * 0.56); for (let sy = floorY * 0.34; sy < floorY * 0.82; sy += 14) { ['#e53935', '#3c8cdc', '#ffd166', '#6ec85a'].forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(sx + 4 + i * 11, sy, 9, 10); }); } }
-    ctx.fillStyle = '#d0d0d0'; ctx.fillRect(x + 240, floorY * 0.6, 70, 26); ctx.fillStyle = '#a0a0a0'; ctx.fillRect(x + 240, floorY * 0.6 + 26, 70, floorY * 0.26 - 26); ctx.fillStyle = '#58b858'; ctx.fillRect(x + 298, floorY * 0.6 + 6, 4, 4);
+    ctx.fillStyle = '#d0d0d0'; ctx.fillRect(x + 240, floorY * 0.6, 70, 26); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 240, floorY * 0.6, 70, 3); ctx.fillStyle = '#a0a0a0'; ctx.fillRect(x + 240, floorY * 0.6 + 26, 70, floorY * 0.26 - 26); ctx.fillStyle = Math.floor(t * 4) % 2 ? '#58b858' : '#2a6a2a'; ctx.fillRect(x + 298, floorY * 0.6 + 6, 4, 4); ctx.fillStyle = 'rgba(88,184,88,0.25)'; ctx.fillRect(x + 292, floorY * 0.6 + 2, 16, 12);
     ctx.fillStyle = '#fff'; for (let i = 0; i < 4; i++) ctx.fillRect(x + 250 + i * 2, floorY * 0.6 - 4 - i * 2, 40, 3);
     ctx.fillStyle = '#d02020'; ctx.fillRect(x + 350, floorY * 0.7, 14, 34); ctx.fillStyle = '#222'; ctx.fillRect(x + 354, floorY * 0.7 - 6, 6, 8);
   } else {
@@ -109,7 +109,8 @@ function drawCorridor(ctx, w, h, camX, t, floorY) {
   for (let x = -(((camX * 0.5) % 260) + 260); x < w; x += 260) {
     ctx.fillStyle = 'rgba(255,255,240,0.18)'; ctx.fillRect(x + 20, floorY * 0.12, 180, floorY * 0.5);
     ctx.fillStyle = '#fbfbf2'; ctx.fillRect(x + 40, floorY * 0.1, 140, 8);
-    ctx.fillStyle = '#9a9a90'; ctx.fillRect(x + 210, floorY * 0.06, 30, 10);
+    ctx.fillStyle = '#9a9a90'; ctx.fillRect(x + 210, floorY * 0.06, 30, 10); ctx.fillStyle = '#7a7a70'; for (let k = 0; k < 4; k++) ctx.fillRect(x + 212, floorY * 0.06 + 2 + k * 2, 26, 1);
+    ctx.save(); ctx.translate(x + 130, floorY * 0.12); ctx.rotate(t * 6); ctx.fillStyle = '#8a8a80'; for (let b = 0; b < 3; b++) { ctx.rotate(Math.PI * 2 / 3); ctx.fillRect(-2, -14, 4, 14); } ctx.restore();
   }
   ctx.fillStyle = WALL; ctx.fillRect(0, floorY * 0.2, w, floorY * 0.8);
   ctx.fillStyle = WALL2; ctx.fillRect(0, floorY * 0.2, w, 6); ctx.fillRect(0, floorY - 10, w, 10);
@@ -121,12 +122,17 @@ function drawCorridor(ctx, w, h, camX, t, floorY) {
     drawSegment(ctx, ((i % 6) + 6) % 6, x, floorY, t, ((i % 6) + 6) % 6);
     // стойка перегородки между сегментами и указатель
     ctx.fillStyle = '#cfc9b8'; ctx.fillRect(x + SEG - 6, floorY * 0.2, 6, floorY * 0.8);
-    if (i % 2 === 0) { ctx.fillStyle = '#21a038'; ctx.fillRect(x + 8, floorY * 0.22, 40, 14); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('EXIT', x + 12, floorY * 0.22 + 4); }
+    if (i % 2 === 0) { ctx.fillStyle = 'rgba(33,160,56,0.3)'; ctx.fillRect(x + 2, floorY * 0.2, 52, 22); ctx.fillStyle = '#21a038'; ctx.fillRect(x + 8, floorY * 0.22, 40, 14); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('EXIT', x + 12, floorY * 0.22 + 4); }
+    ctx.fillStyle = '#c8c2b0'; ctx.fillRect(x, floorY - 16, SEG, 6); ctx.fillStyle = '#e4dccc'; ctx.fillRect(x, floorY - 16, SEG, 2);
+    ctx.fillStyle = '#d8d0c0'; ctx.fillRect(x + SEG - 30, floorY - 40, 10, 8); ctx.fillStyle = '#555'; ctx.fillRect(x + SEG - 28, floorY - 38, 2, 3); ctx.fillRect(x + SEG - 24, floorY - 38, 2, 3);
   }
   ctx.fillStyle = CARPET; ctx.fillRect(0, floorY, w, h - floorY);
   ctx.fillStyle = CARPET2; for (let x = -((camX % 40) + 40); x < w; x += 40) ctx.fillRect(x, floorY, 20, h - floorY);
   ctx.fillStyle = '#2c3a54'; for (let y = floorY; y < h; y += 26) ctx.fillRect(0, y, w, 2);
+  ctx.fillStyle = '#44557a'; for (let y = floorY + 8; y < h; y += 26) for (let x = -((camX % 40) + 40) + 6; x < w; x += 40) ctx.fillRect(x, y, 3, 3);
+  for (let x = -(((camX * 0.5) % 260) + 260); x < w; x += 260) { ctx.fillStyle = 'rgba(255,255,230,0.06)'; ctx.fillRect(x + 50, floorY, 120, h - floorY); }
   ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(0, floorY, w, 10);
+  for (let x = -((camX % 700) + 700) + 120; x < w; x += 700) { ctx.fillStyle = '#f4f4f4'; ctx.fillRect(x, floorY + 40, 16, 12); ctx.fillRect(x + 22, floorY + 46, 14, 10); ctx.fillStyle = '#888'; ctx.fillRect(x + 3, floorY + 43, 10, 1); ctx.fillRect(x + 3, floorY + 46, 8, 1); ctx.fillStyle = '#f4f4f4'; ctx.fillRect(x + 300, h - 30, 10, 12); ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x + 302, h - 28, 6, 2); ctx.fillStyle = '#e8e8e8'; ctx.fillRect(x + 310, h - 26, 3, 6); }
 }
 
 export default {

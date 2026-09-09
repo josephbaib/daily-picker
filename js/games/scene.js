@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=018888a-1722';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=018888a-1722';
-import { mulberry32 as seededRnd } from '../rng.js?v=018888a-1722';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 as seededRnd } from '../rng.js?v=ed139c8-1737';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
@@ -169,14 +169,23 @@ export function drawStands(ctx, x0, yTop, w, rows, t, camX, scale = 2) {
 const FPS = Math.max(10, Math.min(60, parseInt(new URLSearchParams(location.search).get('fps') || '24', 10) || 24));
 const FRAME_MS = 1000 / FPS;
 let lastFrameAt = 0;
+// Кадр приходит через requestAnimationFrame, а если вкладка в фоне и кадров нет, через таймер:
+// игра не должна замирать у зрителя, который переключился на другое окно.
 export function nextFrame(cb) {
-  return requestAnimationFrame((now) => {
-    if (now - lastFrameAt < FRAME_MS - 2) { cb._raf = nextFrame(cb); return; }
+  const handle = { raf: 0, timer: 0, done: false };
+  const run = () => {
+    if (handle.done) return; handle.done = true;
+    cancelAnimationFrame(handle.raf); clearTimeout(handle.timer);
+    const now = performance.now();
+    if (now - lastFrameAt < FRAME_MS - 2) { const again = nextFrame(cb); handle.raf = again.raf; handle.timer = again.timer; handle.done = false; handle.inner = again; return; }
     lastFrameAt = now;
     try { cb(now); } catch (e) { console.error('кадр упал', e); if (window.__errs) window.__errs.push(String(e && e.stack || e)); throw e; }
-  });
+  };
+  handle.raf = requestAnimationFrame(run);
+  handle.timer = setTimeout(run, 120);
+  return handle;
 }
-export function cancelFrame(id) { cancelAnimationFrame(id); }
+export function cancelFrame(h) { if (!h) return; h.done = true; cancelAnimationFrame(h.raf); clearTimeout(h.timer); if (h.inner) cancelFrame(h.inner); }
 
 // ---------- напряжение: кто следующий ----------
 // Метка угрозы над персонажем: мигающая рамка с треугольником. Ставится на кандидатов по очереди,

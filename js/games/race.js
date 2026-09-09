@@ -1,7 +1,7 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 const SKY = [[30, 24, 80], [80, 40, 110], [190, 80, 100], [245, 140, 90], [255, 205, 120]];
 
@@ -83,6 +83,10 @@ export default {
         for (let wy = horizon - bh + 8; wy < horizon - 8; wy += 12) for (let wx = cx + 6; wx < cx + b.w - 6; wx += 12) if (((wx * 7 + wy * 13) % 10) / 10 < b.lit) ctx.fillRect(wx, wy, 5, 6);
         cx += b.w + 14;
       });
+      // дирижабль с командой, птицы
+      const bx0 = ((time * 18 - camX * 0.04) % (w + 400)) - 200;
+      ctx.fillStyle = '#e8e8f0'; ctx.beginPath(); ctx.ellipse(bx0, horizon * 0.14, 90, 26, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#c8c8d8'; ctx.beginPath(); ctx.ellipse(bx0, horizon * 0.14 + 10, 90, 12, 0, 0, Math.PI); ctx.fill(); ctx.fillStyle = '#21a038'; ctx.fillRect(bx0 - 40, horizon * 0.14 - 8, 80, 16); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2Bсосы', bx0 - 30, horizon * 0.14 - 4); ctx.fillStyle = '#3a3a4a'; ctx.fillRect(bx0 - 14, horizon * 0.14 + 24, 28, 10);
+      for (let b = 0; b < 5; b++) { const bxx = ((b * 190 + time * 45 - camX * 0.06) % (w + 100)) - 50, byy = horizon * (0.3 + (b % 3) * 0.08) + Math.sin(time * 3 + b) * 6; ctx.fillStyle = '#1a1428'; ctx.fillRect(bxx, byy, 5, 2); ctx.fillRect(bxx - 4, byy - 2 + (Math.floor(time * 8 + b) % 2) * 3, 5, 2); ctx.fillRect(bxx + 4, byy - 2 + (Math.floor(time * 8 + b) % 2) * 3, 5, 2); }
       // мачты освещения
       [0.15, 0.85].forEach((fx) => {
         const mx = Math.round(w * fx - (camX * 0.2 % w));
@@ -100,6 +104,10 @@ export default {
       ctx.fillStyle = '#ffd166'; ctx.font = "9px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2Bсосы  CUP', sbx - 100, horizon - 80);
       ctx.fillStyle = '#ff5050'; ctx.fillText(time.toFixed(1), sbx + 40, horizon - 80);
       ctx.fillStyle = '#6ec85a'; ctx.fillText('СБЕР АРЕНА', sbx - 100, horizon - 64);
+      // перила трибуны с баннерами, газон с цветами, стартовые колодки
+      ctx.fillStyle = '#c9c9d0'; ctx.fillRect(0, trackTop - 30, w, 3); ctx.fillStyle = '#8a8a94'; for (let px = -((camX * 0.3) % 60); px < w; px += 60) ctx.fillRect(px, trackTop - 30, 2, 16);
+      for (let px = -((camX * 0.3) % 480) - 100; px < w; px += 480) { ctx.fillStyle = '#e53935'; ctx.fillRect(px, trackTop - 28, 140, 12); ctx.fillStyle = '#fff'; ctx.font = "6px 'Press Start 2P', monospace"; ctx.fillText('ДЕЙЛИК', px + 44, trackTop - 25); }
+      ctx.fillStyle = '#3f8a3a'; ctx.fillRect(0, trackTop - 14, w, 4); ctx.fillStyle = '#5cbf5e'; for (let px = -((camX) % 14); px < w; px += 14) ctx.fillRect(px, trackTop - 16, 3, 4); for (let px = -((camX) % 90) + 20; px < w; px += 90) { ctx.fillStyle = '#f08ab0'; ctx.fillRect(px, trackTop - 17, 3, 3); ctx.fillStyle = '#f0d060'; ctx.fillRect(px + 30, trackTop - 17, 3, 3); }
       // бортик и дорожка
       ctx.fillStyle = '#e8e2d0'; ctx.fillRect(0, trackTop - 14, w, 14);
       ctx.fillStyle = '#21a038'; for (let ax = -((camX) % 160); ax < w; ax += 160) { ctx.fillRect(ax, trackTop - 12, 80, 10); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.fillText('СБЕР', ax + 18, trackTop - 10); ctx.fillStyle = '#21a038'; }
@@ -115,6 +123,7 @@ export default {
       // старт, судья с флажком, финиш и фотографы
       const sx = Math.round(startX - camX);
       ctx.fillStyle = '#f4ecd8'; ctx.fillRect(sx, trackTop, 4, h - trackTop);
+      for (let r = 0; r < rows; r++) { const ky = Math.round(trackTop + r * rowH + sprH * 0.3) + rowH * 0.55; ctx.fillStyle = '#e8e8e8'; ctx.fillRect(sx - 30, ky, 22, 4); ctx.fillStyle = '#ffd166'; ctx.fillRect(sx - 26, ky - 6, 6, 6); ctx.fillRect(sx - 16, ky - 6, 6, 6); }
       if (sx > -100) { drawNpc(ctx, 3, 'stand-right', sx - 70, trackTop - sprH * 0.9, scale); ctx.fillStyle = t < 0.05 ? '#ff5050' : '#ffffff'; ctx.fillRect(sx - 70 + 20 * scale, trackTop - sprH * 0.9 - 10, 14, 10); }
       const fx = Math.round(finishX - camX);
       for (let y = trackTop; y < h; y += 8) for (let k = 0; k < 2; k++) { ctx.fillStyle = ((y / 8 + k) % 2) ? '#141414' : '#f4f4f4'; ctx.fillRect(fx + k * 8, y, 8, 8); }

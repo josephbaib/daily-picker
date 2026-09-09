@@ -1,7 +1,7 @@
-import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];
@@ -19,6 +19,8 @@ function drawHall(ctx, w, h, floorY, t, lightning, dim) {
   if (!lightning) { ctx.fillStyle = '#e8e6c8'; ctx.fillRect(wx + 84, wy + 22, 30, 30); ctx.fillStyle = '#141a34'; ctx.fillRect(wx + 96, wy + 18, 30, 26); }
   ctx.fillStyle = 'rgba(180,200,255,0.35)';
   for (let i = 0; i < 24; i++) { const rx = wx + ((i * 37 + t * 60) % ww), ry = wy + ((i * 53 + t * 260) % wh); ctx.fillRect(rx, ry, 1, 8); }
+  for (let i = 0; i < 18; i++) { const dx = wx + ((i * 47) % ww), dy = wy + ((i * 89 + t * 30 * (1 + i % 3)) % wh); ctx.fillStyle = 'rgba(220,230,255,0.45)'; ctx.fillRect(dx, dy, 2, 6); ctx.fillStyle = 'rgba(220,230,255,0.2)'; ctx.fillRect(dx, dy - 10, 1, 10); }
+  ctx.fillStyle = '#1a1220'; [[w * 0.3, floorY * 0.2], [w * 0.7, floorY * 0.5]].forEach(([cx0, cy0]) => { let cx = cx0, cy = cy0; for (let k = 0; k < 8; k++) { const nx = cx + (k % 2 ? 6 : -4), ny = cy + 8; ctx.fillRect(Math.min(cx, nx), cy, Math.abs(nx - cx) + 1, 1); ctx.fillRect(nx, cy, 1, 9); cx = nx; cy = ny; } });
   ctx.fillStyle = '#3a2a1e'; ctx.fillRect(wx - 8, wy - 8, ww + 16, 8); ctx.fillRect(wx - 8, wy, 8, wh + 8); ctx.fillRect(wx + ww, wy, 8, wh + 8); ctx.fillRect(wx - 8, wy + wh, ww + 16, 8);
   ctx.fillRect(wx + ww / 2 - 3, wy, 6, wh); ctx.fillRect(wx, wy + wh / 2 - 3, ww, 6);
   // портреты предков в золочёных рамах, глаза светятся красным
@@ -53,6 +55,14 @@ function drawHall(ctx, w, h, floorY, t, lightning, dim) {
       if (!dim) { ctx.fillStyle = `rgba(255,170,60,${0.08 * fl})`; ctx.fillRect(cx + dx - 26, floorY * 0.42 - 60, 52, 70); ctx.fillStyle = '#ffb040'; ctx.fillRect(cx + dx - 2, floorY * 0.42 - 22 - fl * 3, 4, 6 + fl * 3); }
     });
   });
+  // камин с живым огнём и доспехи у стены
+  const fpx = w * 0.13, fpy = floorY - 90;
+  ctx.fillStyle = '#5a4a4a'; ctx.fillRect(fpx - 10, fpy - 10, 120, 100); ctx.fillStyle = '#7a6a6a'; ctx.fillRect(fpx - 10, fpy - 10, 120, 6); ctx.fillStyle = '#3a2a2a'; for (let by = fpy; by < fpy + 90; by += 12) for (let bx = fpx - 10 + ((by / 12) % 2) * 10; bx < fpx + 110; bx += 20) ctx.fillRect(bx, by, 18, 10);
+  ctx.fillStyle = '#100808'; ctx.fillRect(fpx + 14, fpy + 18, 72, 72);
+  if (!dim) { const fl = 0.7 + 0.3 * Math.sin(t * 11); ctx.fillStyle = `rgba(255,140,40,${0.16 * fl})`; ctx.fillRect(fpx - 30, fpy - 20, 160, 130); }
+  for (let k = 0; k < 5; k++) { const fh = 18 + Math.abs(Math.sin(t * 9 + k * 1.3)) * 22; ctx.fillStyle = k % 2 ? '#ff8c42' : '#ffd166'; ctx.fillRect(fpx + 24 + k * 12, fpy + 84 - fh, 8, fh); ctx.fillStyle = '#ff5030'; ctx.fillRect(fpx + 26 + k * 12, fpy + 84 - fh * 0.5, 4, fh * 0.5); }
+  ctx.fillStyle = '#4a2a10'; ctx.fillRect(fpx + 18, fpy + 80, 64, 8); ctx.fillStyle = '#6a3a18'; ctx.fillRect(fpx + 22, fpy + 76, 56, 4);
+  const ax = w * 0.9, ay = floorY - 110; ctx.fillStyle = '#8a8a9a'; ctx.fillRect(ax - 12, ay, 24, 26); ctx.fillRect(ax - 18, ay + 28, 36, 40); ctx.fillRect(ax - 22, ay + 30, 8, 34); ctx.fillRect(ax + 14, ay + 30, 8, 34); ctx.fillRect(ax - 12, ay + 70, 10, 40); ctx.fillRect(ax + 2, ay + 70, 10, 40); ctx.fillStyle = '#b8b8c8'; ctx.fillRect(ax - 12, ay, 6, 26); ctx.fillRect(ax - 18, ay + 28, 6, 40); ctx.fillStyle = '#222'; ctx.fillRect(ax - 8, ay + 8, 16, 4); ctx.fillStyle = '#6a6a7a'; ctx.fillRect(ax + 22, ay - 10, 4, 120); ctx.fillStyle = '#c8c8d8'; ctx.fillRect(ax + 16, ay - 20, 16, 30); if (Math.floor(t * 0.7) % 5 === 0) { ctx.fillStyle = '#ff3030'; ctx.fillRect(ax - 6, ay + 9, 3, 2); ctx.fillRect(ax + 3, ay + 9, 3, 2); }
   // крыса бежит вдоль плинтуса, при молнии летучие мыши
   const rx = ((t * 90) % (w + 60)) - 30;
   ctx.fillStyle = '#2a2230'; ctx.fillRect(rx, floorY - 8, 14, 6); ctx.fillRect(rx - 8, floorY - 5, 8, 2); ctx.fillRect(rx + 12, floorY - 10, 5, 4);

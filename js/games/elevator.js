@@ -1,7 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=018888a-1722';
-import { mulberry32 } from '../rng.js?v=018888a-1722';
-import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=018888a-1722';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=018888a-1722';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=ed139c8-1737';
+import { mulberry32 } from '../rng.js?v=ed139c8-1737';
+import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=ed139c8-1737';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами
@@ -22,13 +22,18 @@ function drawBuilding(ctx, w, h, cabX, cabW, cabY, ch, travel, t, exited, scale)
     ctx.fillStyle = '#24223a'; ctx.fillRect(0, y - SLAB, w, 8);
     [[16, cabX - 40], [cabX + cabW + 40, w - 16]].forEach(([x0, x1], side) => {
       if (x1 - x0 < 120) return;
-      ctx.fillStyle = rr() < 0.7 ? '#e6e0d2' : '#d8e4ee'; ctx.fillRect(x0, y, x1 - x0, ch);
-      ctx.fillStyle = '#c9c2b2'; ctx.fillRect(x0, y, x1 - x0, 4);
-      ctx.fillStyle = '#8a7a5a'; ctx.fillRect(x0, y + ch - 14, x1 - x0, 14);
+      const warm = rr() < 0.7;
+      ctx.fillStyle = warm ? '#e6e0d2' : '#d8e4ee'; ctx.fillRect(x0, y, x1 - x0, ch);
+      ctx.fillStyle = warm ? '#ddd6c6' : '#cdd9e4'; for (let sx = x0; sx < x1; sx += 18) ctx.fillRect(sx, y, 6, ch); // обои в полоску
+      ctx.fillStyle = '#c9c2b2'; ctx.fillRect(x0, y, x1 - x0, 4); ctx.fillStyle = '#b8b0a0'; ctx.fillRect(x0, y + ch - 20, x1 - x0, 6); // плинтус
+      ctx.fillStyle = '#8a7a5a'; ctx.fillRect(x0, y + ch - 14, x1 - x0, 14); ctx.fillStyle = '#7a6a4a'; for (let sx = x0; sx < x1; sx += 40) ctx.fillRect(sx, y + ch - 14, 38, 1);
+      for (let lx = x0 + 40; lx < x1 - 40; lx += 120) { ctx.fillStyle = 'rgba(255,255,230,0.25)'; ctx.fillRect(lx - 30, y + 8, 100, 60); ctx.fillStyle = '#fbfbf2'; ctx.fillRect(lx, y + 6, 40, 4); }
       let dx = x0 + 10;
-      while (dx + 100 < x1) { drawDesk(ctx, dx, y + ch - 14, 1, Math.abs(fl * 5 + side * 3 + Math.floor(dx / 100)), t); dx += 120; }
+      while (dx + 100 < x1) { drawDesk(ctx, dx, y + ch - 14, 1, Math.abs(fl * 5 + side * 3 + Math.floor(dx / 100)), t); ctx.fillStyle = Math.floor(t * 3 + dx) % 4 ? '#6ec85a' : '#2a6a2a'; ctx.fillRect(dx + 44, y + ch - 30, 3, 3); dx += 120; }
       if (rr() < 0.5) drawPlant(ctx, x1 - 40, y + ch - 14, 1);
-      ctx.fillStyle = '#7fb0e0'; ctx.fillRect(x0 + 10, y + 12, 50, 34); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + 34, y + 12, 2, 34); ctx.fillRect(x0 + 10, y + 28, 50, 2);
+      if (rr() < 0.5) { ctx.fillStyle = '#fff'; ctx.fillRect(x1 - 96, y + 18, 60, 40); ctx.fillStyle = '#c8c8c8'; ctx.fillRect(x1 - 96, y + 18, 60, 3); ctx.fillStyle = '#21a038'; for (let b = 0; b < 5; b++) ctx.fillRect(x1 - 90 + b * 11, y + 52 - (8 + ((b * 7 + fl) % 20)), 8, 8 + ((b * 7 + fl) % 20)); }
+      else { ctx.fillStyle = '#c0d8f0'; ctx.fillRect(x1 - 60, y + ch - 60, 22, 30); ctx.fillStyle = '#f0f0f0'; ctx.fillRect(x1 - 62, y + ch - 30, 26, 16); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(x1 - 52 + (Math.floor(t * 3) % 3) * 2, y + ch - 50 - ((t * 10) % 20), 3, 3); }
+      ctx.fillStyle = '#7fb0e0'; ctx.fillRect(x0 + 10, y + 12, 50, 34); ctx.fillStyle = '#4a6a9a'; for (let bx = 0; bx < 4; bx++) ctx.fillRect(x0 + 14 + bx * 12, y + 24 + (bx % 2) * 6, 8, 22 - (bx % 2) * 6); ctx.fillStyle = Math.floor(t + fl) % 2 ? '#ffe9a0' : '#ffd98a'; ctx.fillRect(x0 + 18, y + 30, 2, 2); ctx.fillRect(x0 + 42, y + 34, 2, 2); ctx.fillStyle = '#fff'; ctx.fillRect(x0 + 34, y + 12, 2, 34); ctx.fillRect(x0 + 10, y + 28, 50, 2);
       ctx.fillStyle = '#fff'; ctx.fillRect(x0 + 70, y + 14, 52, 14); ctx.fillStyle = '#222'; ctx.font = "6px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('ЭТАЖ ' + (fl + 1), x0 + 73, y + 18);
       // вышедшие на этом этаже стоят в комнате и машут
       exited.filter((e) => e.floor === fl && e.side === side).forEach((e, j) => {
@@ -42,6 +47,8 @@ function drawBuilding(ctx, w, h, cabX, cabW, cabY, ch, travel, t, exited, scale)
   ctx.fillStyle = '#2e2c44'; ctx.fillRect(cabX - 30, 0, 8, h); ctx.fillRect(cabX + cabW + 22, 0, 8, h);
   ctx.fillStyle = '#3a3850'; for (let y = -40 + ((travel * floorH) % 40); y < h; y += 40) { ctx.fillRect(cabX - 22, y, 12, 4); ctx.fillRect(cabX + cabW + 10, y, 12, 4); }
   ctx.fillStyle = '#6a6a7a'; ctx.fillRect(cabX + cabW / 2 - 6, 0, 2, cabY); ctx.fillRect(cabX + cabW / 2 + 4, 0, 2, cabY);
+  ctx.fillStyle = '#2e2c44'; for (let yy = 40 - ((travel * floorH) % 80); yy < h; yy += 80) { ctx.fillRect(cabX - 24, yy, cabW + 48, 4); }
+  ctx.fillStyle = '#3a3850'; ctx.fillRect(cabX - 30, 0, cabW + 60, 10); ctx.fillStyle = Math.floor(t * 2) % 2 ? '#ff5050' : '#802020'; ctx.fillRect(cabX + cabW / 2 - 3, 3, 6, 4);
   ctx.fillStyle = '#4a4a5a'; ctx.fillRect(cabX + cabW + 4, ((travel * floorH * -1.2) % (h + 200) + h + 200) % (h + 200) - 100, 14, 60);
 }
 
@@ -158,7 +165,10 @@ export default {
       if (doors > 0) drawLobby(ctx, x, y, cw, ch, finale ? 'ПЕРЕГОВОРКА' : `ЭТАЖ ${floorNo}`);
       else {
         ctx.fillStyle = '#bdbdd0'; ctx.fillRect(x, y, cw, ch);
+        ctx.fillStyle = '#b2b2c6'; for (let ly = y + 2; ly < y + ch; ly += 5) ctx.fillRect(x, ly, cw, 1); // шлифованный металл
         ctx.fillStyle = '#9fb4c8'; ctx.fillRect(x + 12, y + 12, cw - 24, ch * 0.5);
+        ctx.fillStyle = '#21a038'; ctx.fillRect(x + cw / 2 - 18, y + ch * 0.62, 36, 10); ctx.fillStyle = '#fff'; ctx.font = "5px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('СБЕР', x + cw / 2 - 12, y + ch * 0.62 + 2);
+        ctx.fillStyle = Math.floor(t * 4) % 2 ? '#3aa0ff' : '#1a60a0'; ctx.fillRect(x + 6, y + ch - 6, cw - 12, 2);
         ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x + 20, y + 16, 18, ch * 0.44);
         ctx.fillStyle = '#8a8a9c'; ctx.fillRect(x + 12, y + ch * 0.66, cw - 24, 5);
         ctx.fillStyle = '#5a5a6c'; ctx.fillRect(x + cw - 34, y + ch * 0.28, 20, 62);

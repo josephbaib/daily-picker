@@ -1,4 +1,4 @@
-import { portraitCanvas, personFor } from '../sprite.js?v=ed139c8-1737';
+import { portraitCanvas, personFor } from '../sprite.js?v=9a65e5d-1745';
 
 function shortId() { return Math.random().toString(36).slice(2, 8); }
 
@@ -89,9 +89,12 @@ export function mountGameTiles(root, games, { onSelect }) {
   function select(id) {
     selected = id;
     tiles.forEach((t, k) => t.tile.classList.toggle('selected', k === id));
-    const g = tiles.get(id) && tiles.get(id).g;
-    onSelect(id, false, g);
+    const entry = tiles.get(id);
+    if (entry && entry.tile.scrollIntoView) entry.tile.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+    onSelect(id, false, entry && entry.g);
   }
+  // колёсико мыши листает ряд по горизонтали
+  root.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { root.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
 
   function paint() {
     tiles.forEach(({ cv, g }) => {

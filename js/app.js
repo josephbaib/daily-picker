@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js?v=ed139c8-1737';
-import { computeOrder } from './order.js?v=ed139c8-1737';
-import { randomSeed } from './rng.js?v=ed139c8-1737';
-import { GAMES, gameById, pickGame } from './games/index.js?v=ed139c8-1737';
-import { sound } from './sound.js?v=ed139c8-1737';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=ed139c8-1737';
-import { mountResult } from './ui/result.js?v=ed139c8-1737';
-import * as db from './db.js?v=ed139c8-1737';
-import { NPCS } from './games/scene.js?v=ed139c8-1737';
+import { personFor, preload } from './sprite.js?v=9a65e5d-1745';
+import { computeOrder } from './order.js?v=9a65e5d-1745';
+import { randomSeed } from './rng.js?v=9a65e5d-1745';
+import { GAMES, gameById, pickGame } from './games/index.js?v=9a65e5d-1745';
+import { sound } from './sound.js?v=9a65e5d-1745';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=9a65e5d-1745';
+import { mountResult } from './ui/result.js?v=9a65e5d-1745';
+import * as db from './db.js?v=9a65e5d-1745';
+import { NPCS } from './games/scene.js?v=9a65e5d-1745';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -127,6 +127,8 @@ async function boot() {
     onMenu: () => { show('hub'); setState('idle'); },
   });
 
+  $('#row-left').onclick = () => tiles.move(-1);
+  $('#row-right').onclick = () => tiles.move(1);
   document.addEventListener('keydown', (e) => {
     if (document.body.dataset.screen !== 'hub' || e.target.tagName === 'INPUT') return;
     if (e.code === 'ArrowRight') tiles.move(1);

@@ -1,7 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=ed139c8-1737';
-import { mulberry32 } from '../rng.js?v=ed139c8-1737';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, drawCloud, nextFrame, cancelFrame } from './scene.js?v=ed139c8-1737';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ed139c8-1737';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=9a65e5d-1745';
+import { mulberry32 } from '../rng.js?v=9a65e5d-1745';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, drawCloud, nextFrame, cancelFrame } from './scene.js?v=9a65e5d-1745';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=9a65e5d-1745';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, машинки с сидящими персонажами,
 // четыре участка трассы с препятствиями. Порядок финиша задан заранее, препятствия только для зрелища.

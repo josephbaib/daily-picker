@@ -28,4 +28,4 @@ npm test
 
 Миграции в `supabase/migrations/`. Если GitHub-интеграция не применила их, вставить SQL вручную в Supabase → SQL Editor.
 
-Спека и план: `docs/superpowers/`.
+Общая спека проекта: `docs/SPEC.md`. Промпты для персонажей: `docs/prompts.md`. Спеки и планы по этапам: `docs/superpowers/`.

@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=e4da4ae-1049';
+import { mulberry32 } from '../rng.js?v=73b8c62-1054';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=e4da4ae-1049';
-import { mulberry32 as seededRnd } from '../rng.js?v=e4da4ae-1049';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=73b8c62-1054';
+import { mulberry32 as seededRnd } from '../rng.js?v=73b8c62-1054';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));

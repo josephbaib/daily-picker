@@ -1,7 +1,7 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=e4da4ae-1049';
-import { mulberry32 } from '../rng.js?v=e4da4ae-1049';
-import { label, makeParticles, drawCloud, drawNpc, nextFrame, cancelFrame } from './scene.js?v=e4da4ae-1049';
-import { beginCamera, drawAmbient, vignette, speedLines, bigText, impactRing } from './fx.js?v=e4da4ae-1049';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=73b8c62-1054';
+import { mulberry32 } from '../rng.js?v=73b8c62-1054';
+import { label, makeParticles, drawCloud, drawNpc, nextFrame, cancelFrame } from './scene.js?v=73b8c62-1054';
+import { beginCamera, drawAmbient, vignette, speedLines, bigText, impactRing } from './fx.js?v=73b8c62-1054';
 
 // Эльбрус: восхождение по зигзагу от Азау до западной вершины 5642 м. Камера едет вверх за лидером.
 // По пути канатка и Бочки, трещина, скалы Пастухова, лавина, буран на седловине. Первый на вершине говорит первым.
@@ -17,7 +17,7 @@ function rock(ctx, x, y, s) { rect(ctx, x, y, 14 * s, 9 * s, '#4e4e5c'); rect(ct
 export default {
   id: 'elbrus',
   title: 'Эльбрус',
-  cover: null,
+  cover: 'assets/covers/elbrus.jpg',
   description: 'Восхождение на Эльбрус: канатка, Бочки, трещина, лавина и буран на седловине, а флаг на вершине ставит тот, кто говорит первым.',
   duration: 16,
   minPlayers: 2,

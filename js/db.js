@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=9fa713d-1041';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js?v=efefaaa-1351';
 
 const client = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 

@@ -1,7 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=9fa713d-1041';
-import { mulberry32 } from '../rng.js?v=9fa713d-1041';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=9fa713d-1041';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=9fa713d-1041';
+import { drawSprite, runFrame } from '../sprite.js?v=efefaaa-1351';
+import { mulberry32 } from '../rng.js?v=efefaaa-1351';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=efefaaa-1351';
+import { drawActor, placeTags } from './stage.js?v=efefaaa-1351';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=efefaaa-1351';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
@@ -21,6 +22,9 @@ const MID_LIGHTS = [[316, 152, 26], [160, 252, 22], [448, 260, 22], [40, 144, 16
 const PROP = { lantern: { y: 8, h: 70 }, flag: { y: 84, h: 58 }, cols: [115, 217, 318, 420], w: 94 };
 const SKY = [[8, 8, 30], [20, 14, 60], [50, 24, 90], [110, 40, 90], [180, 80, 80]];
 
+/* паспорт света сцены: ночь, холодная луна справа сверху, тёплые фонари как местные источники */
+const LIGHT = { id: 'rooftops', mul: '150,160,228', tint: '30,40,110', tintK: 0.14, key: { dx: 1, dy: -1, rgb: '170,195,255', k: 0.5 }, shade: { rgb: '6,6,28', k: 0.35 }, warm: '255,150,60', warmEdge: '255,200,120', shadow: 'rgba(4,4,16,0.5)', shadowLen: 3 };
+const LANTERNS = TRACK.map((pc) => pc.x + pc.lantern[0]).concat([FINISH_X - 74]);
 function gapAt(worldX, margin) { // провал, над которым сейчас бегун, с запасом на разбег
   for (let i = 0; i < TRACK.length - 1; i++) { const a = TRACK[i].x + TRACK[i].w - margin, b = TRACK[i + 1].x + margin; if (worldX > a && worldX < b) return { a, b }; }
   return null;
@@ -144,18 +148,22 @@ export default {
         const r = runners[i]; const worldX = START_X + ps[i] * L; const x = Math.round(worldX - camX) - 32;
         if (x < -80 || x > w + 20) return;
         const fy = feetY(r.row); const g = gapAt(worldX, 14);
-        let jump = 0; if (g) jump = Math.sin(((worldX - g.a) / (g.b - g.a)) * Math.PI) * 30;
+        /* прыжок в три фазы: присед перед краем, дуга, приземление с пылью и просадкой */
+        let lift = 0, squat = 0;
+        if (g) { const u = (worldX - g.a) / (g.b - g.a); if (u < 0.12) squat = 3; else if (u > 0.9) { squat = 2; if (r.landed !== g.a) { r.landed = g.a; for (let q = 0; q < 4; q++) particles.puff(x + 22 + q * 6, fy - 2, time, rnd, 'rgba(150,160,210,0.6)'); } } else lift = Math.round(Math.sin(((u - 0.12) / 0.78) * Math.PI) * 30); }
         const slipping = r.slipAt !== null && Math.abs(t - r.slipAt) < 0.035 && !g;
-        const duck = shurikens.some((s) => s.row === r.row && time - s.at > 0.2 && time - s.at < 0.7);
-        const y = Math.round(fy - 62 - jump + (duck ? 5 : 0) + (slipping ? 6 : 0));
-        if (!g) { ctx.fillStyle = 'rgba(4,4,16,0.45)'; ctx.fillRect(x + 20, fy - 1, 24, 2); ctx.fillRect(x + 23, fy + 1, 18, 1); }
-        const fr = t < 1 ? (jump > 4 ? 'run3' : slipping ? 'hurt0' : runFrame(time, 11 + r.f * 2, r.gait)) : (r.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'stand-right');
-        drawSprite(ctx, r.p.person, fr, x, y, 1);
-        if (slipping) { ctx.fillStyle = '#ff5050'; ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('!', x + 30, y - 4); }
+        const duck = shurikens.some((sh) => sh.row === r.row && time - sh.at > 0.2 && time - sh.at < 0.7);
         const first = t >= 1 && r.rank === 0;
-        labels[i] = { text: r.p.name, cx: x + 32, y: y + 2, fg: first ? '#ffd166' : '#f4ecd8', border: first ? '#ffd166' : null };
+        const hop = first ? Math.round(Math.abs(Math.sin(time * 6)) * 4) : 0;
+        const y = fy - 62 + squat + (duck ? 5 : 0) + (slipping ? 6 : 0);
+        let near = 1e9, side = 1; LANTERNS.forEach((lx) => { const d = lx - worldX; if (Math.abs(d) < Math.abs(near)) near = d; }); side = near >= 0 ? 1 : -1;
+        const warm = Math.abs(near) < 36 ? 3 : Math.abs(near) < 76 ? 2 : Math.abs(near) < 120 ? 1 : 0;
+        const fr = t < 1 ? (lift > 4 ? 'run3' : slipping ? 'hurt0' : runFrame(time, 11 + r.f * 2, r.gait)) : (r.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'stand-right');
+        drawActor(ctx, r.p.person, fr, x, y, LIGHT, { warm, warmSide: side, lift: lift + hop, shadow: !gapAt(worldX, -4) });
+        if (slipping) { ctx.fillStyle = '#ff5050'; ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('!', x + 30, y - 4); }
+        labels[i] = { text: r.p.name, cx: x + 32, y: y - lift - hop + 4, index: i, gold: first };
       });
-      placeLabels(ctx, labels.filter(Boolean));
+      placeTags(ctx, labels.filter(Boolean));
 
       // 6. СВЕТ поверх персонажей: фонари на столбах красят крышу и тех, кто пробегает рядом
       TRACK.forEach((pc, i) => { const lx = pc.x + pc.lantern[0] - camX, ly = yOff + pc.lantern[1]; if (lx < -80 || lx > w + 80) return; const f = flick(i); glow(ctx, lx, ly, 58, '255,130,50', 0.42 * f); glow(ctx, lx, ly, 14, '255,220,150', 0.5 * f); lightPool(ctx, lx, yOff + RIDGE + 22, 70, 16, '255,140,60', 0.3 * f); });

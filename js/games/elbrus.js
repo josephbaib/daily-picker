@@ -1,7 +1,8 @@
-import { drawSprite } from '../sprite.js?v=9fa713d-1041';
-import { mulberry32 } from '../rng.js?v=9fa713d-1041';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=9fa713d-1041';
-import { beginCamera, vignette, bigText } from './fx.js?v=9fa713d-1041';
+import { drawSprite } from '../sprite.js?v=efefaaa-1351';
+import { mulberry32 } from '../rng.js?v=efefaaa-1351';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=efefaaa-1351';
+import { drawActor, placeTags } from './stage.js?v=efefaaa-1351';
+import { beginCamera, vignette, bigText } from './fx.js?v=efefaaa-1351';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -17,6 +18,8 @@ const FLAG = { w: 47, h: 43 }, EAGLE = { w: 90, h: 53 }, AVAL = { w: 202, h: 146
 const WINDOWS = [[497, 1172], [512, 1176], [534, 1202], [549, 1206], [571, 1228], [586, 1232], [606, 1256], [70, 1262], [131, 1272]]; // окна Бочек и станции
 const CABLE = [[22, 1300], [96, 1128], [150, 1068]];          // линия троса канатки на плите базы
 
+/* паспорт света сцены: рассвет, низкое тёплое солнце справа сверху, холодная тень, поверхность — снег */
+const LIGHT = { id: 'elbrus', mul: '226,226,255', tint: '120,140,220', tintK: 0.08, key: { dx: 1, dy: -1, rgb: '255,226,170', k: 0.55 }, shade: { rgb: '40,50,130', k: 0.3 }, warm: '255,200,140', shadow: 'rgba(40,60,140,0.34)', shadowLen: 5, surface: '#ffffff' };
 const wyOf = (u) => START_WY - u * (START_WY - END_WY);
 const pathX = (u) => 320 + 25 * u * u + Math.sin(u * Math.PI * 6) * 55 * Math.pow(1 - u, 0.9) * Math.min(1, u * 8);
 function hash(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
@@ -95,11 +98,11 @@ export default {
         if (cabin) [0, 0.5].forEach((ph, i) => { const q = (time * 0.06 + ph) % 1, seg = q < 0.62 ? 0 : 1, f = seg === 0 ? q / 0.62 : (q - 0.62) / 0.38; const [ax, ay] = CABLE[seg], [bx, by] = CABLE[seg + 1]; ctx.drawImage(cabin, (Math.floor(time * 2 + i) % 2) * CABIN.w, 0, CABIN.w, CABIN.h, Math.round(x0 + ax + (bx - ax) * f - 10), sy(ay + (by - ay) * f), CABIN.w, CABIN.h); });
       }
 
-      // 3. ТРОПА кодом поверх снега: утоптанная полоса, следы, вешки с флажками
-      for (let wy = START_WY; wy >= END_WY; wy -= 3) { const y = sy(wy); if (y < -4 || y > h + 4) continue; const u = (START_WY - wy) / (START_WY - END_WY), x = Math.round(x0 + pathX(u)), half = Math.round(9 - 4 * u); ctx.fillStyle = 'rgba(120,140,200,0.16)'; ctx.fillRect(x - half - 2, y, half * 2 + 4, 3); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x - half, y, half * 2, 3); }
-      for (let k = 0; k < 215; k++) { const wy = START_WY - k * 6, y = sy(wy); if (y < -4 || y > h + 4) continue; const u = (START_WY - wy) / (START_WY - END_WY), x = Math.round(x0 + pathX(u)); ctx.fillStyle = '#8a9ad0'; ctx.fillRect(x + (k % 2 ? 2 : -4), y, 2, 1); ctx.fillStyle = '#b6c2ea'; ctx.fillRect(x + (k % 2 ? 2 : -4), y + 1, 2, 1); }
-      const flag = img('flag');
-      if (flag) for (let k = 1; k < 12; k++) { const u = k / 12.5, y = sy(wyOf(u)); if (y < -10 || y > h + 50) continue; const x = Math.round(x0 + pathX(u) + (k % 2 ? 24 : -30)); ctx.fillStyle = 'rgba(40,60,130,0.3)'; ctx.fillRect(x - 12, y - 1, 14, 2); ctx.drawImage(flag, (Math.floor(time * 7 + k) % 4) * FLAG.w, 0, FLAG.w, FLAG.h, x - 4, y - FLAG.h, FLAG.w, FLAG.h); }
+      // 3. ТРОПА кодом поверх снега: утоптанная полоса и следы остаются только за прошедшими, впереди снег нетронут
+      for (let wy = START_WY; wy >= END_WY; wy -= 3) { const y = sy(wy); if (y < -4 || y > h + 4) continue; const u = (START_WY - wy) / (START_WY - END_WY); if (u > leader + 0.004) continue; const x = Math.round(x0 + pathX(u)), half = Math.round(9 - 4 * u); ctx.fillStyle = 'rgba(120,140,200,0.16)'; ctx.fillRect(x - half - 2, y, half * 2 + 4, 3); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(x - half, y, half * 2, 3); }
+      for (let k = 0; k < 215; k++) { const wy = START_WY - k * 6, y = sy(wy); if (y < -4 || y > h + 4) continue; const u = (START_WY - wy) / (START_WY - END_WY); if (u > leader + 0.004) continue; const x = Math.round(x0 + pathX(u)); ctx.fillStyle = '#8a9ad0'; ctx.fillRect(x + (k % 2 ? 2 : -4), y, 2, 1); ctx.fillStyle = '#b6c2ea'; ctx.fillRect(x + (k % 2 ? 2 : -4), y + 1, 2, 1); }
+      const flag = img('flag'), depth = []; /* всё, что стоит на склоне, рисуется в общем порядке по нижнему краю */
+      if (flag) for (let k = 1; k < 12; k++) { const u = k / 12.5, y = sy(wyOf(u)); if (y < -10 || y > h + 50) continue; const x = Math.round(x0 + pathX(u) + (k % 2 ? 24 : -30)); depth.push({ fy: y, draw: () => { ctx.fillStyle = LIGHT.shadow; for (let r = 0; r < 3; r++) ctx.fillRect(x - 3 - r * 5, y - 1 + r, 10 - r * 2, 1); ctx.drawImage(flag, (Math.floor(time * 7 + k) % 4) * FLAG.w, 0, FLAG.w, FLAG.h, x - 4, y - FLAG.h, FLAG.w, FLAG.h); } }); }
 
       // трещина открывается перед лидером на леднике
       if (crackAge >= 0) { const y = sy(wyOf(0.3)); if (y > -20 && y < h + 20) { const open = Math.min(1, crackAge / 0.5), xa = x0 + 226, xb = x0 + 436; for (let x = xa; x < xb; x += 2) { const j = Math.round(Math.sin(x * 0.09) * 3 + Math.sin(x * 0.023) * 5), hh = Math.max(1, Math.round((5 + Math.sin(x * 0.05) * 3 + hash(x) * 2) * open * Math.pow(Math.sin(((x - xa) / (xb - xa)) * Math.PI), 0.6))); ctx.fillStyle = '#f6f8ff'; ctx.fillRect(x, y + j - 2, 2, 2); ctx.fillStyle = '#0f2466'; ctx.fillRect(x, y + j, 2, hh); ctx.fillStyle = '#2f59b0'; ctx.fillRect(x, y + j + Math.max(1, hh - 2), 2, 2); ctx.fillStyle = '#9db4e6'; ctx.fillRect(x, y + j + hh, 2, 1); } } }
@@ -122,25 +125,29 @@ export default {
 
       // 4. АЛЬПИНИСТЫ: длинные синие тени от низкого солнца, пар изо рта
       const posOf = (c, u) => { const uu = Math.max(0, u - c.lag * (1 - u)); return { uu, x: Math.round(x0 + pathX(uu) + c.side * 24 * (1 - 0.35 * uu)) - 32, y: sy(wyOf(uu)) - 62 }; };
-      if (time - lastPuff > 0.35 && t < 1) { lastPuff = time; climbers.forEach((c, i) => { const q = posOf(c, ps[i]); particles.puff(q.x + 36, q.y + 22, time, rnd, 'rgba(255,255,255,0.8)'); }); }
+      if (time - lastPuff > 0.35 && t < 1) { lastPuff = time; climbers.forEach((c, i) => { const q = posOf(c, ps[i]); particles.puff(q.x + 18, q.y + 24, time, rnd, 'rgba(255,255,255,0.7)'); }); }
       const labels = [];
-      [...climbers.keys()].sort((a, b) => (t >= 1 ? (climbers[a].rank === 0) - (climbers[b].rank === 0) : 0) || (ps[b] - climbers[b].lag) - (ps[a] - climbers[a].lag)).forEach((i) => { // дальние (выше по склону) рисуются первыми, победитель на финише поверх всех
-        const c = climbers[i]; const q = posOf(c, ps[i]); let { x, y } = q; const u = q.uu;
+      climbers.forEach((c, i) => {
+        const q = posOf(c, ps[i]); let { x, y } = q; const u = q.uu;
         if (y < -80 || y > h + 10) return;
-        let jump = 0; if (crackAge >= 0 && Math.abs(u - 0.3) < 0.022) jump = Math.sin(((u - 0.278) / 0.044) * Math.PI) * 22;
+        let jump = 0; if (crackAge >= 0 && Math.abs(u - 0.3) < 0.022) jump = Math.round(Math.sin(((u - 0.278) / 0.044) * Math.PI) * 22);
         const slipping = c.slipAt !== null && Math.abs(t - c.slipAt) < 0.035 && !jump;
         const ducked = avalanche >= 0.1 && avalanche < 1.3;
         if (slipping) y += 6; if (ducked) y += 3;
-        ctx.fillStyle = 'rgba(40,60,140,0.30)'; for (let r = 0; r < 4; r++) ctx.fillRect(x + 14 - r * 5, y + 60 + r, 22 - r * 2, 1 + (r < 2 ? 1 : 0));
-        const fr = t < 1 ? (slipping || ducked ? 'hurt0' : 'up' + ((Math.floor(time * (5 + c.f)) + c.gait) % 8)) : (c.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'idle');
-        drawSprite(ctx, c.p.person, fr, x, y - Math.round(jump), 1);
-        if (slipping) { ctx.fillStyle = '#ff4040'; ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('!', x + 44, y + 6); }
+        const leanX = storm ? -2 : 0; /* в буран фигуры клонит ветром */
         const first = t >= 1 && c.rank === 0;
-        const lw = c.p.name.length * 8 + 5, dirL = c.side < 0 ? -1 : c.side > 0 ? 1 : 0; /* крайние колонны подписаны сбоку, средняя над головой */
-        labels[i] = { text: c.p.name, cx: x + 32 + dirL * (20 + lw / 2), y: y - Math.round(jump) + (dirL ? 26 : 1), fg: first ? '#ffd166' : '#f4ecd8', border: first ? '#ffd166' : null };
+        const hop = first ? Math.round(Math.abs(Math.sin(time * 6)) * 4) : 0;
+        const fr = t < 1 ? (slipping || ducked ? 'hurt0' : 'up' + ((Math.floor(time * (storm ? 3 : 5 + c.f)) + c.gait) % 8)) : (c.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'idle');
+        depth.push({ fy: y + 62 + (first ? 1000 : 0), draw: () => {
+          drawActor(ctx, c.p.person, fr, x + leanX, y, LIGHT, { sink: jump || hop ? 0 : 2, lift: jump + hop });
+          if (slipping) { ctx.fillStyle = '#ff4040'; ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('!', x + 44, y + 6); }
+        } });
+        const lw = c.p.name.length * 8 + 9, dirL = c.side < 0 ? -1 : c.side > 0 ? 1 : 0; /* крайние колонны подписаны сбоку, средняя над головой */
+        labels[i] = { text: c.p.name, cx: x + 32 + dirL * (20 + lw / 2), y: y - jump - hop + (dirL ? 26 : 2), index: i, gold: first };
       });
-      particles.draw(ctx, time);
-      placeLabels(ctx, labels.filter(Boolean));
+      particles.draw(ctx, time); /* пар и снежная пыль позади фигур: люди идут спиной к камере */
+      depth.sort((m, k) => m.fy - k.fy).forEach((m) => m.draw());
+      placeTags(ctx, labels.filter(Boolean));
 
       // флаг Сбера на вершине, когда дошёл первый
       if (flashAt !== null) { const fx = x0 + 336, fy = sy(-26), rise = Math.min(1, (time - flashAt) / 0.5); ctx.fillStyle = '#d9d9e6'; ctx.fillRect(fx, fy + Math.round(40 * (1 - rise)), 1, Math.round(40 * rise)); if (rise >= 1) for (let k = 0; k < 18; k++) { const wv = Math.round(Math.sin(time * 7 - k * 0.5) * 1.5); ctx.fillStyle = k % 5 === 0 ? '#2fc24f' : '#21a038'; ctx.fillRect(fx + 1 + k, fy + 1 + wv, 1, 10); } }

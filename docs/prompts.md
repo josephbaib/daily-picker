@@ -54,3 +54,18 @@ Character: <описание внешности>
 7. *Cloud band plate (solid green #00ff00 background):* a wide horizontal band of fluffy white clouds with blue-grey undersides across the whole width, filling only the middle third of the image height, soft top and bottom edges, seamless horizontally.
 8. *Foreground plate (solid green #00ff00 background):* dark near-camera silhouettes at the frame edges only: a rock outcrop with icicles in the lower left corner, a snow-covered boulder with a string of prayer flags in the lower right corner, an overhanging snow cornice with icicles along the top edge; the middle 60% of the image stays empty.
 9. *Props sheet (solid green #00ff00 background):* four rows of 4-frame animations, each frame in a 128×128 cell, rows aligned in a grid: row 1 a small red flag on a bamboo wand waving in the wind; row 2 an eagle seen from above flapping its wings; row 3 an avalanche snow cloud billowing and growing; row 4 a red cable car cabin swaying (frames 1–2) and a red snowcat with a blinking orange beacon (frames 3–4).
+
+
+## Лист эффектов (схема из docs/STAGE.md)
+
+Один общий лист на все игры. Нужен прозрачный фон или ровный зелёный #00ff00.
+
+*Pixel art sprite sheet for game visual effects, crisp pixel clusters, limited palette, no text, no watermark, transparent background (or solid green #00ff00). Eight rows of 6-frame animations, every frame inside its own 96×96 cell, cells aligned in a strict grid, each animation centered in its cell and progressing left to right from start to fade-out:*
+*row 1 — small ground dust puff, grey-blue, kicked up by a footstep and dissolving;*
+*row 2 — snow kick: a small burst of white snow chunks and powder from a step, dissolving;*
+*row 3 — landing impact dust ring spreading sideways along the ground and fading;*
+*row 4 — chimney smoke puff rising and thinning out, light grey;*
+*row 5 — warm orange spark burst like a firework popping, fading embers;*
+*row 6 — white-yellow hit flash star, sharp and short, shrinking to nothing;*
+*row 7 — spinning steel shuriken, 6 rotation frames, with a subtle motion glint;*
+*row 8 — fluttering leaf tumbling in the wind, green-to-orange, 6 rotation frames.*

@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=ddff8ed-1653';
-import { mulberry32 } from '../rng.js?v=ddff8ed-1653';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=ddff8ed-1653';
-import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=ddff8ed-1653';
-import { beginCamera, vignette, bigText } from './fx.js?v=ddff8ed-1653';
+import { drawSprite } from '../sprite.js?v=edc8964-1702';
+import { mulberry32 } from '../rng.js?v=edc8964-1702';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=edc8964-1702';
+import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=edc8964-1702';
+import { beginCamera, vignette, bigText } from './fx.js?v=edc8964-1702';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.

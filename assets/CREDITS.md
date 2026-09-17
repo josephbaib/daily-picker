@@ -90,3 +90,5 @@
 `assets/scenes/elbrus/*.png` — плиты и анимации сцены «Эльбрус», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
 
 `assets/scenes/race/*.png` — плиты и анимации сцены «Забег», `assets/fx/fx.png` — общий лист эффектов. Сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
+
+`assets/scenes/kart/*.png` — плиты и анимации сцены «Картинг», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`. Финишная арка и пушки в картинге взяты из плит «Забега».

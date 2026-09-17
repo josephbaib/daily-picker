@@ -1,7 +1,7 @@
-import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=64a89a0-1027';
-import { mulberry32 } from '../rng.js?v=64a89a0-1027';
-import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=64a89a0-1027';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=64a89a0-1027';
+import { drawSprite, spriteCanvas, SPRITE_W, SPRITE_H } from '../sprite.js?v=9fa713d-1041';
+import { mulberry32 } from '../rng.js?v=9fa713d-1041';
+import { label, makeParticles, drawNpcBust, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=9fa713d-1041';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=9fa713d-1041';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 const KINDS = ['hands', 'ghost', 'chandelier', 'blackout', 'monster'];

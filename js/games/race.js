@@ -1,7 +1,7 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=64a89a0-1027';
-import { mulberry32 } from '../rng.js?v=64a89a0-1027';
-import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=64a89a0-1027';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=64a89a0-1027';
+import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=9fa713d-1041';
+import { mulberry32 } from '../rng.js?v=9fa713d-1041';
+import { skyLayer, label, makeParticles, drawStands, drawCloud, drawFlag, drawNpc, nextFrame, cancelFrame } from './scene.js?v=9fa713d-1041';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=9fa713d-1041';
 
 const SKY = [[30, 24, 80], [80, 40, 110], [190, 80, 100], [245, 140, 90], [255, 205, 120]];
 

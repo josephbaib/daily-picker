@@ -1,7 +1,7 @@
-import { drawSprite } from '../sprite.js?v=64a89a0-1027';
-import { mulberry32 } from '../rng.js?v=64a89a0-1027';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=64a89a0-1027';
-import { beginCamera, vignette, bigText } from './fx.js?v=64a89a0-1027';
+import { drawSprite } from '../sprite.js?v=9fa713d-1041';
+import { mulberry32 } from '../rng.js?v=9fa713d-1041';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=9fa713d-1041';
+import { beginCamera, vignette, bigText } from './fx.js?v=9fa713d-1041';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -71,7 +71,7 @@ export default {
       const crackAge = fired.has(0.3) ? time - fired.get(0.3) : -1;
       const avalanche = fired.has(0.55) ? time - fired.get(0.55) : -1;
       const stormAge = fired.has(0.78) ? time - fired.get(0.78) : -1, storm = stormAge >= 0 && stormAge < 3.2;
-      const camTimes = [...fired.values()].concat(flashAt !== null ? [flashAt] : []);
+      const camTimes = [...fired.values()]; /* на финише камера не дёргается: последний кадр остаётся в чистой пиксельной сетке */
       beginCamera(ctx, w, h, time, camTimes, () => ({ x: w / 2, y: h / 2 }), { level: 1.08, dur: 0.9, amp: avalanche >= 0 && avalanche < 1 ? 6 : 3 });
 
       // 1. НЕБО и ДАЛЬНИЙ ХРЕБЕТ над морем облаков: видны вокруг вершинного конуса
@@ -161,13 +161,20 @@ export default {
       if (gust || storm) for (let k = 0; k < (storm ? 16 : 5); k++) { ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(Math.round(((k * 211 - time * 420) % (w + 200) + w + 200) % (w + 200) - 100), (k * 47 + Math.round(time * 20)) % h, 34 + (k % 3) * 16, 1); }
       glow(ctx, w - 30, 20, 240, '255,200,140', 0.10);                // тёплый свет низкого солнца справа сверху
 
-      // рамка переднего плана: на старте и у вершины скала с сосульками, валун с флажками и карниз входят в кадр
-      const fg = img('fg');
-      if (fg) { const k = Math.min(1, Math.min(camMax - camY, camY - camMin) / 170), shift = Math.round(k * k * (3 - 2 * k) * 230); if (shift < 225) { ctx.drawImage(fg, 0, 0, 640, 130, x0, -shift, 640, 130); ctx.drawImage(fg, 0, 150, 640, 210, x0, h - 210 + shift, 640, 210); } }
-
-      vignette(ctx, w, h, 0.32);
-      if (flashAt !== null) { const k = Math.min(1, (time - flashAt) / 0.4), bar = Math.round(20 * k); ctx.fillStyle = '#060a1e'; ctx.fillRect(0, 0, w, bar); ctx.fillRect(0, h - bar, w, bar); const warm = Math.max(0, 0.35 - (time - flashAt) * 0.7); if (warm > 0) { ctx.fillStyle = `rgba(255,210,140,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
       ctx.restore();
+
+      // РАМКА переднего плана рисуется вне камеры, поэтому наезд и тряска её не обрезают. Левая часть прижата к левому краю кадра,
+      // правая к правому: на любом соотношении сторон скала, валун и карниз упираются в край, а не висят срезом.
+      const fg = img('fg');
+      if (fg) {
+        const k = Math.min(1, Math.min(camMax - camY, camY - camMin) / 170), shift = Math.round(k * k * (3 - 2 * k) * 230);
+        if (shift < 225) {
+          ctx.drawImage(fg, 0, 0, 200, 130, 0, -shift, 200, 130); ctx.drawImage(fg, 200, 0, 440, 130, w - 440, -shift, 440, 130);
+          ctx.drawImage(fg, 0, 150, 320, 210, 0, h - 210 + shift, 320, 210); ctx.drawImage(fg, 320, 150, 320, 210, w - 320, h - 210 + shift, 320, 210);
+        }
+      }
+      vignette(ctx, w, h, 0.32);
+      if (flashAt !== null) { const warm = Math.max(0, 0.35 - (time - flashAt) * 0.7); if (warm > 0) { ctx.fillStyle = `rgba(255,210,140,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
 
       // высотомер и крупные надписи
       pixLabel(ctx, `${Math.round(BASE_ALT + leader * (TOP_ALT - BASE_ALT))} м`, w - 40, 8, '#ffd166', '#ffd166');

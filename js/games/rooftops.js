@@ -1,7 +1,7 @@
-import { drawSprite, runFrame } from '../sprite.js?v=64a89a0-1027';
-import { mulberry32 } from '../rng.js?v=64a89a0-1027';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=64a89a0-1027';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=64a89a0-1027';
+import { drawSprite, runFrame } from '../sprite.js?v=9fa713d-1041';
+import { mulberry32 } from '../rng.js?v=9fa713d-1041';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=9fa713d-1041';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=9fa713d-1041';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
@@ -179,7 +179,7 @@ export default {
       }
 
       vignette(ctx, w, h, 0.5);
-      if (flashAt !== null) { const k = Math.min(1, (time - flashAt) / 0.4), bar = Math.round(22 * k); ctx.fillStyle = '#05050f'; ctx.fillRect(0, 0, w, bar); ctx.fillRect(0, h - bar, w, bar); const warm = Math.max(0, 0.3 - (time - flashAt) * 0.6); if (warm > 0) { ctx.fillStyle = `rgba(255,170,80,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
+      if (flashAt !== null) { const warm = Math.max(0, 0.3 - (time - flashAt) * 0.6); if (warm > 0) { ctx.fillStyle = `rgba(255,170,80,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
       ctx.restore();
       if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ХОКАГЕ!', time, '#ff6b6b', 24);
       if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(FINISH_X - camX, yOff + 150, time, rnd, { count: 70, speed: 140, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6, gravity: 150, size: 3 }); }

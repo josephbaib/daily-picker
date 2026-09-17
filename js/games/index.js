@@ -1,13 +1,13 @@
-import race from './race.js?v=64a89a0-1027';
-import chairs from './chairs.js?v=64a89a0-1027';
-import horror from './horror.js?v=64a89a0-1027';
-import elevator from './elevator.js?v=64a89a0-1027';
-import kart from './kart.js?v=64a89a0-1027';
-import brawl from './brawl.js?v=64a89a0-1027';
-import rooftops from './rooftops.js?v=64a89a0-1027';
-import training from './training.js?v=64a89a0-1027';
-import elbrus from './elbrus.js?v=64a89a0-1027';
-import { mulberry32 } from '../rng.js?v=64a89a0-1027';
+import race from './race.js?v=9fa713d-1041';
+import chairs from './chairs.js?v=9fa713d-1041';
+import horror from './horror.js?v=9fa713d-1041';
+import elevator from './elevator.js?v=9fa713d-1041';
+import kart from './kart.js?v=9fa713d-1041';
+import brawl from './brawl.js?v=9fa713d-1041';
+import rooftops from './rooftops.js?v=9fa713d-1041';
+import training from './training.js?v=9fa713d-1041';
+import elbrus from './elbrus.js?v=9fa713d-1041';
+import { mulberry32 } from '../rng.js?v=9fa713d-1041';
 
 export const GAMES = [race, chairs, kart, rooftops, elbrus, horror, elevator, brawl, training];
 

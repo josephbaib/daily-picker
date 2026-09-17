@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite, runFrame } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
@@ -35,6 +35,8 @@ export default {
   title: 'Крыши',
   cover: 'assets/covers/rooftops.jpg',
   assets: ASSETS,
+  backdrop: [['sky', 0, 1], ['far', 0, 3], ['mid', 0, 8], ['roof', 0, 14]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '255,140,70',
   description: 'Ночная деревня ниндзя, прыжки с крыши на крышу и сюрикены из темноты на пути к башне Хокаге.',
   duration: 15,
   minPlayers: 2,

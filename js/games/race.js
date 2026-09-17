@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite, runFrame } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Забег на стадионе на закате: одна дорожка, бегуны в несколько рядов в глубину, камера за лидером.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: небо, город с мачтами, трибуны, дорожка, финишная арка, камеры на переднем плане.
@@ -22,6 +22,8 @@ export default {
   title: 'Забег',
   cover: 'assets/covers/race.jpg',
   assets: ASSETS,
+  backdrop: [['sky', -150, 2], ['far', -170, 4], ['stands', -137, 9], ['track', 40, 16]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '255,170,90',
   description: 'Полный стадион, ревущие трибуны и одна финишная лента, за которой ждёт право сказать первое слово.',
   duration: 13,
   minPlayers: 2,

@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=5271d64-1818';
+import { spriteCanvas } from '../sprite.js?v=b144995-1824';
 
 const LIT = new WeakMap();
 let work = null;
@@ -91,7 +91,7 @@ export function placeTags(ctx, items) {
 }
 
 // ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
-import { plate } from './scene.js?v=5271d64-1818';
+import { plate } from './scene.js?v=b144995-1824';
 export const FX_ASSET = 'assets/fx/fx.png';
 const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
 const FX_W = 96, FX_H = 48;

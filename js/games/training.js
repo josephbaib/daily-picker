@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -20,6 +20,8 @@ export default {
   title: 'Полигон',
   cover: 'assets/covers/training.jpg',
   assets: ASSETS,
+  backdrop: [['sky', -60, 1], ['far', -72, 3], ['mid', 0, 7], ['ground', 0, 7]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '255,150,80',
   description: 'Тренировочный полигон в лесу, где метка цели прыгает между ниндзя, а техника замены спасает не всех.',
   duration: 22,
   minPlayers: 2,

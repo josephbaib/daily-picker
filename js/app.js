@@ -1,12 +1,14 @@
-import { personFor, preload, spriteCanvas } from './sprite.js?v=5271d64-1818';
-import { computeOrder } from './order.js?v=5271d64-1818';
-import { randomSeed } from './rng.js?v=5271d64-1818';
-import { GAMES, gameById, pickGame } from './games/index.js?v=5271d64-1818';
-import { sound } from './sound.js?v=5271d64-1818';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=5271d64-1818';
-import { mountResult } from './ui/result.js?v=5271d64-1818';
-import * as db from './db.js?v=5271d64-1818';
-import { NPCS, loadImage, plate } from './games/scene.js?v=5271d64-1818';
+import { personFor, preload, spriteCanvas } from './sprite.js?v=b144995-1824';
+import { computeOrder } from './order.js?v=b144995-1824';
+import { randomSeed } from './rng.js?v=b144995-1824';
+import { GAMES, gameById, pickGame } from './games/index.js?v=b144995-1824';
+import { sound } from './sound.js?v=b144995-1824';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=b144995-1824';
+import { mountResult } from './ui/result.js?v=b144995-1824';
+import * as db from './db.js?v=b144995-1824';
+import { NPCS, loadImage, plate, drawTiled } from './games/scene.js?v=b144995-1824';
+
+const hubWorld = { id: null }; // какая игра выбрана в меню: её мир показывается за полкой
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -36,6 +38,11 @@ function toast(text, ms = 4000) {
   sc.fillStyle = g; sc.fillRect(0, 0, 96, 96);
   sc.strokeStyle = 'rgba(200,215,255,0.9)'; sc.lineWidth = 1.5; sc.strokeRect(30, 30, 36, 36);
   sc.fillStyle = 'rgba(160,190,255,0.16)'; sc.fillRect(30, 30, 36, 36);
+  // Мир выбранной игры за полкой: плиты игры рисуются в буфер 640×360, едут с параллаксом и растягиваются на весь экран без сглаживания.
+  // При смене игры старый мир плавно сменяется новым. Для плитки «Случайная» миры листаются сами.
+  const bufs = [0, 1].map(() => { const c = document.createElement('canvas'); c.width = 640; c.height = 360; return c; });
+  const world = { cur: null, prev: null, since: 0 };
+  const paintWorld = (buf, game, sec) => { const b = buf.getContext('2d'); b.imageSmoothingEnabled = false; b.fillStyle = '#000'; b.fillRect(0, 0, 640, 360); let any = false; (game.backdrop || []).forEach((l) => { const im = plate(l.src); if (!im) return; any = true; drawTiled(b, im, sec * l.speed, l.y, 640); }); return any; };
   let last = performance.now();
   function fit() { cv.width = innerWidth; cv.height = innerHeight; }
   addEventListener('resize', fit); fit();
@@ -45,8 +52,18 @@ function toast(text, ms = 4000) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const w = cv.width, h = cv.height;
     ctx.clearRect(0, 0, w, h);
+    const want = hubWorld.id === 'random' ? GAMES[Math.floor(now / 3200) % GAMES.length] : gameById(hubWorld.id);
+    if (want && want !== world.cur) { world.prev = world.cur; world.cur = want; world.since = now; document.documentElement.style.setProperty('--glow', `rgba(${want.glow || '160,190,255'},0.55)`); }
+    const cover = Math.max(w / 640, h / 360), dw = Math.ceil(640 * cover), dh = Math.ceil(360 * cover), dx = Math.round((w - dw) / 2), dy = Math.round((h - dh) / 2);
+    const mix = Math.min(1, (now - world.since) / 700);
+    ctx.imageSmoothingEnabled = false;
+    if (world.prev && mix < 1 && paintWorld(bufs[1], world.prev, now / 1000)) ctx.drawImage(bufs[1], dx, dy, dw, dh);
+    if (world.cur && paintWorld(bufs[0], world.cur, now / 1000)) { ctx.globalAlpha = mix; ctx.drawImage(bufs[0], dx, dy, dw, dh); ctx.globalAlpha = 1; }
+    ctx.fillStyle = 'rgba(0,0,8,0.66)'; ctx.fillRect(0, 0, w, h);
+    const shade = ctx.createLinearGradient(0, 0, 0, h); shade.addColorStop(0, 'rgba(0,0,6,0.55)'); shade.addColorStop(0.35, 'rgba(0,0,6,0)'); shade.addColorStop(0.7, 'rgba(0,0,6,0.25)'); shade.addColorStop(1, 'rgba(0,0,6,0.8)'); ctx.fillStyle = shade; ctx.fillRect(0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
     const grd = ctx.createRadialGradient(w * 0.5, h * 1.1, 10, w * 0.5, h * 1.1, h * 0.9);
-    grd.addColorStop(0, 'rgba(40,60,140,0.35)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    grd.addColorStop(0, `rgba(${(world.cur && world.cur.glow) || '40,60,140'},0.22)`); grd.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = grd; ctx.fillRect(0, 0, w, h);
     // тонкая световая полоса проходит по экрану раз в несколько секунд
     const sweep = (now / 1000) % 7;
@@ -134,6 +151,7 @@ async function boot() {
   const tiles = mountGameTiles($('#game-tiles'), [...GAMES, { id: 'random', title: 'Случайная', description: 'Игра выбирается сама, каждый день по-разному.', preview: randomPreview }], {
     onSelect: (id, go, g) => {
       localStorage.setItem('dp:game', id);
+      hubWorld.id = id;
       if (g && g.assets) loadGameAssets(g); // выбранная игра догружается вне очереди
       if (g) $('#game-desc').textContent = g.description || '';
       if (go) start();

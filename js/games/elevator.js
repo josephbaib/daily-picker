@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: этажи плитами друг над другом, кабина и двери с плит, шкив и лампа перегруза с листа.
@@ -17,6 +17,8 @@ export default {
   title: 'Лифт',
   cover: 'assets/covers/elevator.jpg',
   assets: ASSETS,
+  backdrop: [['floorA', 0, 4]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '170,195,235',
   description: 'Перегруженный лифт ползёт на совещание, и на каждом этаже кому-то придётся выйти раньше времени.',
   duration: 20,
   minPlayers: 2,

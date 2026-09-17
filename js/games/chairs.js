@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=5271d64-1818';
-import { litSprite, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=b144995-1824';
+import { litSprite, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Гонки на офисных стульях по коридору до переговорки.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: город за панорамными окнами, опенспейс за стеклянным ограждением,
@@ -22,6 +22,8 @@ export default {
   title: 'Гонки на стульях',
   cover: 'assets/covers/chairs.jpg',
   assets: ASSETS,
+  backdrop: [['window', 0, 3], ['office', -40, 8], ['corridor', 0, 14]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '150,200,255',
   description: 'Безумный заезд на офисных креслах по коридору, где на кону не кубок, а первое слово на дейлике.',
   duration: 13,
   minPlayers: 2,

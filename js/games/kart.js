@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=5271d64-1818';
-import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=b144995-1824';
+import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, карты с сидящими водителями,
 // четыре зоны за сетчатым забором: парковка, коридор, столовая, серверная. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -41,6 +41,8 @@ export default {
   title: 'Картинг',
   cover: 'assets/covers/kart.jpg',
   assets: ASSETS,
+  backdrop: [['sky', -20, 1], ['far', -125, 4], ['zone0', -95, 10], ['road', 0, 18]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '120,190,255',
   description: 'Два круга вокруг офиса на картах: парковка, коридор, столовая и серверная, а на трассе конусы, кофе и рампы.',
   duration: 18,
   minPlayers: 2,

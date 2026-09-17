@@ -43,12 +43,17 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 .row-arrow.left { left: 4px; } .row-arrow.right { right: 4px; }
 .game-tiles::after { content: ''; position: absolute; left: 0; right: 0; bottom: 62px; min-width: 100%; height: 1px; background: linear-gradient(90deg, transparent, rgba(200,215,255,0.55), transparent); }
 .game-tiles::before { content: ''; position: absolute; left: 0; right: 0; bottom: 40px; min-width: 100%; height: 22px; background: radial-gradient(60% 100% at 50% 0%, rgba(150,180,255,0.18), transparent 70%); }
-.gtile { width: 176px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: transform .25s ease, opacity .25s; opacity: 0.55; position: relative; }
+/* невыбранные коробки затемняются слоем поверх обложки, а не прозрачностью: за полкой теперь живой мир игры, и он не должен просвечивать сквозь коробки */
+.gtile { width: 176px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 14px; transition: transform .25s ease; position: relative; }
+.gtile .cover::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,8,0.5); transition: background .25s; pointer-events: none; }
+.gtile .cover { position: relative; }
+.gtile .gbody { opacity: 0.6; transition: opacity .25s; }
 .gtile .gbody { text-align: center; }
 .gtile .gtitle { font-size: 15px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; }
 .gtile .gdesc, .gtile .gmeta { display: none; }
-.gtile:hover { opacity: 0.9; }
-.gtile.selected { opacity: 1; transform: translateY(-14px) scale(1.14); }
+.gtile:hover .cover::after { background: rgba(0,0,8,0.15); } .gtile:hover .gbody { opacity: 0.9; }
+.gtile.selected { transform: translateY(-14px) scale(1.14); }
+.gtile.selected .cover::after { background: rgba(0,0,8,0); } .gtile.selected .gbody { opacity: 1; }
 .gtile.selected .cover { border-color: rgba(220,230,255,0.9); box-shadow: 0 0 26px var(--glow), 0 0 60px rgba(120,150,255,0.25); }
 /* обложка как коробка PS2: тёмная шапка с платформой, арт, полоса внизу */
 .cover { width: 168px; height: 236px; background: #06070f; border: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; -webkit-box-reflect: below 6px linear-gradient(transparent 60%, rgba(255,255,255,0.22)); }

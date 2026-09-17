@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: зал и его версия во вспышке молнии плитами, призрак, руки, свеча и чудовище с листа.
@@ -19,6 +19,8 @@ export default {
   title: 'Особняк',
   cover: 'assets/covers/horror.jpg',
   assets: ASSETS,
+  backdrop: [['hall', 0, 3]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '200,70,70',
   description: 'Старый особняк заперт на ночь, и дом забирает команду по одному, пока не останется тот, кому говорить первым.',
   duration: 20,
   minPlayers: 2,

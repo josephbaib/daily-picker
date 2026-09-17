@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=5271d64-1818';
-import { mulberry32 } from '../rng.js?v=5271d64-1818';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=5271d64-1818';
-import { drawActor, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
-import { beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
+import { drawSprite } from '../sprite.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=b144995-1824';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=b144995-1824';
+import { drawActor, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
+import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -29,6 +29,8 @@ export default {
   title: 'Эльбрус',
   cover: 'assets/covers/elbrus.jpg',
   assets: ASSETS,
+  backdrop: [['sky', -96, 1], ['far', 34, 3], ['summit', 40, 6]].map(([n, y, speed]) => ({ src: DIR + n + '.png', y, speed })), /* мир игры за полкой меню */
+  glow: '150,195,255',
   description: 'Восхождение на Эльбрус: канатка, Бочки, трещина, лавина и буран на седловине, а флаг на вершине ставит тот, кто говорит первым.',
   duration: 16,
   minPlayers: 2,

@@ -1,22 +1,36 @@
-import { drawSprite, runFrame, SPRITE_W, SPRITE_H } from '../sprite.js?v=73b8c62-1054';
-import { mulberry32 } from '../rng.js?v=73b8c62-1054';
-import { skyLayer, label, makeParticles, drawCloud, nextFrame, cancelFrame, stepRandom } from './scene.js?v=73b8c62-1054';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=73b8c62-1054';
+import { drawSprite, runFrame } from '../sprite.js?v=bf6c143-0945';
+import { mulberry32 } from '../rng.js?v=bf6c143-0945';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=bf6c143-0945';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=bf6c143-0945';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
-// сюрикены из темноты, кто-то чуть не срывается. Кто первым на башне, тот первым говорит.
+// сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
+// Первая игра по схеме docs/BENCHMARK.md: фон из нарисованных плит в буфере 640×360, код добавляет свет, туман и движение.
+const DIR = 'assets/scenes/rooftops/';
+const ASSETS = ['sky', 'far', 'mid', 'roof', 'fg', 'props', 'tower'].map((n) => DIR + n + '.png');
+const RIDGE = 205;                       // линия конька на плите крыши
+const GAP = 64;
+const PIECES = {                          // плита крыши разрезана на две: у каждой свой фонарь и трубы
+  A: { sx: 0, w: 300, lantern: [48, 124], smoke: [[165, 138]] },
+  B: { sx: 300, w: 340, lantern: [290, 124], smoke: [[37, 160], [62, 166]] },
+};
+const TRACK = (() => { let x = 0; return ['A', 'B', 'A', 'B', 'A', 'B'].map((id) => { const p = { ...PIECES[id], id, x }; x += p.w + GAP; return p; }); })();
+const LAST = TRACK[TRACK.length - 1];
+const START_X = 60, FINISH_X = LAST.x + 170, L = FINISH_X - START_X, WORLD_W = LAST.x + LAST.w;
+const MID_LIGHTS = [[316, 152, 26], [160, 252, 22], [448, 260, 22], [40, 144, 16], [614, 168, 16], [90, 144, 9], [110, 150, 9], [128, 154, 9], [148, 157, 9], [434, 160, 9], [453, 158, 9], [198, 248, 14]];
+const PROP = { lantern: { y: 8, h: 70 }, flag: { y: 84, h: 58 }, cols: [115, 217, 318, 420], w: 94 };
 const SKY = [[8, 8, 30], [20, 14, 60], [50, 24, 90], [110, 40, 90], [180, 80, 80]];
-const ROOF_W = 300, GAP_W = 90;
 
-function roofAt(k) { // крыша номер k: высота и цвет по номеру, одинаково у всех
-  const r = stepRandom(77)(k);
-  return { h: 70 + Math.floor(r * 90), color: ['#7a3a2a', '#5a3a6a', '#3a5a6a', '#6a5a2a'][k % 4] };
+function gapAt(worldX, margin) { // провал, над которым сейчас бегун, с запасом на разбег
+  for (let i = 0; i < TRACK.length - 1; i++) { const a = TRACK[i].x + TRACK[i].w - margin, b = TRACK[i + 1].x + margin; if (worldX > a && worldX < b) return { a, b }; }
+  return null;
 }
 
 export default {
   id: 'rooftops',
   title: 'Крыши',
   cover: 'assets/covers/rooftops.jpg',
+  assets: ASSETS,
   description: 'Ночная деревня ниндзя, прыжки с крыши на крышу и сюрикены из темноты на пути к башне Хокаге.',
   duration: 15,
   minPlayers: 2,
@@ -25,13 +39,13 @@ export default {
   preview(ctx, w, h, t, people) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(skyLayer(w, h, SKY, 3, 'roof-prev'), 0, 0, w, h);
-    ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.8, h * 0.22, 18, 0, Math.PI * 2); ctx.fill();
-    for (let k = 0; k < 4; k++) { const rf = roofAt(k); const x = k * 110 - ((t * 40) % 110); ctx.fillStyle = rf.color; ctx.fillRect(x, h - rf.h * 0.8, 90, rf.h * 0.8); ctx.fillStyle = '#2a1a2a'; ctx.fillRect(x - 6, h - rf.h * 0.8 - 8, 102, 10); }
+    const roof = plate(DIR + 'roof.png'); if (roof) ctx.drawImage(roof, 0, 120, 300, 240, 0, h - 120, 150, 120);
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, runFrame(t, 10, i), 30 + i * 60, h * 0.45 - Math.abs(Math.sin(t * 3 + i)) * 20, 1.5));
   },
 
   play({ canvas, participants, order, seed, onFreeze, onEvent }) {
-    const ctx = canvas.getContext('2d');
+    const buffer = makeBuffer(canvas);
+    const ctx = buffer.ctx;
     const n = participants.length;
     const rank = new Map(order.map((id, i) => [id, i]));
     const rnd = mulberry32(seed);
@@ -44,115 +58,132 @@ export default {
     const particles = makeParticles();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, lastPuff = 0, flashAt = null;
-    const shurikens = Array.from({ length: 6 }, (_, i) => ({ at: 2 + i * 2.1, row: i % rows, x: rnd() }));
+    const shurikens = Array.from({ length: 6 }, (_, i) => ({ at: 2 + i * 2.1, row: i % rows }));
+    const fired = new Set();
     const progress = (r, t) => { const ease = 1 - Math.pow(1 - t, 2.3); const noise = r.amp * Math.sin(2 * Math.PI * (r.f * t + r.phase)) * Math.pow(1 - t, 1.6) * Math.pow(t, 0.5); return Math.max(0, Math.min(r.final, r.final * ease + noise)); };
+    const img = (name) => plate(DIR + name + '.png');
 
     const frame = (now) => {
       if (stopped) return;
       if (start === null) start = now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
-      const w = canvas.width, h = canvas.height;
-      const scale = n <= 8 ? Math.max(2, Math.min(3, Math.floor(h / 300))) : 2;
-      const sprH = SPRITE_H * scale, sprW = SPRITE_W * scale;
-      const startX = 100, L = w * 2.8, finishX = startX + L;
+      const { w, h } = buffer.fit();
+      const yOff = h - 360;                                    // плиты прижаты к низу кадра, лишняя высота уходит в небо
       const ps = runners.map((r) => progress(r, t));
       const leader = Math.max(...ps);
-      const camX = Math.max(0, Math.min(finishX + 260 - w, startX + leader * L - w * 0.6));
-      const baseY = h * 0.5; // линия крыш верхнего ряда
-      const rowH = (h * 0.42) / rows;
+      const drift = Math.sin(time * 0.6) * 1.5;                // лёгкое дыхание камеры
+      const camMax = WORLD_W - w + 30;
+      const camX = Math.round(Math.max(0, Math.min(camMax, START_X + leader * L - w * 0.55)) + drift);
+      const feetY = (row) => yOff + (rows === 1 ? 236 : 222 + Math.round(row * (30 / (rows - 1))));
+      const flick = (i) => 0.78 + 0.22 * Math.sin(time * 7 + i * 2.3) * Math.sin(time * 3.1 + i);
 
-      // небо, луна, облака, скала Хокаге и дальние дома
-      ctx.imageSmoothingEnabled = false;
-      const towerPoint = { x: Math.round(finishX - camX) + 80, y: baseY - 60 };
-      beginCamera(ctx, w, h, time, flashAt !== null ? [flashAt] : [], () => towerPoint, { level: 1.25, dur: 1.1, amp: 8 });
-      ctx.drawImage(skyLayer(w, h, SKY, 4, 'roof'), 0, 0, w, h);
-      drawAmbient(ctx, 'petals', w, h, time, 22, camX);
-      ctx.fillStyle = '#ffe9a0'; ctx.beginPath(); ctx.arc(w * 0.78 - camX * 0.02, h * 0.16, 34, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,240,200,0.08)'; ctx.beginPath(); ctx.arc(w * 0.78 - camX * 0.02, h * 0.16, 70, 0, Math.PI * 2); ctx.fill();
-      for (let i = 0; i < 5; i++) drawCloud(ctx, ((i * 320 - camX * 0.05 + time * 5) % (w + 300)) - 150, h * (0.08 + (i % 3) * 0.08), 8, 'rgba(60,40,90,0.7)');
-      // скала с лицами: силуэт
-      ctx.fillStyle = '#2a1e3a'; const rx = w * 0.15 - camX * 0.08; ctx.fillRect(rx, h * 0.14, 360, h * 0.36);
-      ctx.fillStyle = '#3a2c4a'; [0, 1, 2, 3].forEach((i) => { ctx.fillRect(rx + 20 + i * 86, h * 0.2, 60, 60); ctx.fillStyle = '#2a1e3a'; ctx.fillRect(rx + 34 + i * 86, h * 0.2 + 22, 10, 6); ctx.fillRect(rx + 56 + i * 86, h * 0.2 + 22, 10, 6); ctx.fillStyle = '#3a2c4a'; });
-      // дальние дома с окнами, пагода, бельевые верёвки, дым из труб, гирлянды фонарей
-      for (let x = -((camX * 0.25) % 140) - 140; x < w; x += 140) {
-        const k = Math.round((x + camX * 0.25) / 140), hh = 60 + ((k % 3) + 3) % 3 * 30;
-        ctx.fillStyle = '#1e1630'; ctx.fillRect(x, baseY - hh, 110, hh + 200); ctx.fillStyle = '#2a2040'; ctx.fillRect(x, baseY - hh, 6, hh + 200);
-        ctx.fillStyle = '#ffb347'; for (let wy = baseY - hh + 14; wy < baseY; wy += 22) for (let wx = x + 12; wx < x + 100; wx += 24) if (((wx * 3 + wy) % 7) < 4) { ctx.fillRect(wx, wy, 8, 10); ctx.fillStyle = '#ffd98a'; ctx.fillRect(wx + 1, wy + 1, 3, 3); ctx.fillStyle = '#ffb347'; }
-        ctx.fillStyle = '#3a1a24'; ctx.fillRect(x - 8, baseY - hh - 10, 126, 12); ctx.fillStyle = '#5a2a34'; ctx.fillRect(x - 8, baseY - hh - 10, 126, 3);
-        if (k % 3 === 0) { ctx.fillStyle = '#4a3a4a'; ctx.fillRect(x + 80, baseY - hh - 30, 10, 22); for (let s2 = 0; s2 < 4; s2++) { ctx.fillStyle = `rgba(200,200,220,${0.3 - s2 * 0.07})`; ctx.fillRect(x + 82 + Math.sin(time * 1.5 + s2) * 4 + s2 * 3, baseY - hh - 40 - s2 * 12 - ((time * 12) % 12), 8 + s2 * 2, 6); } }
-        if (k % 4 === 1) { ctx.strokeStyle = '#6a6a7a'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 10, baseY - hh + 6); ctx.quadraticCurveTo(x + 55, baseY - hh + 16, x + 100, baseY - hh + 6); ctx.stroke(); ['#e53935', '#3c8cdc', '#f4f4f4', '#ffd166'].forEach((c, j) => { ctx.fillStyle = c; ctx.fillRect(x + 22 + j * 20 + Math.sin(time * 3 + j) * 2, baseY - hh + 10 + j % 2 * 2, 10, 12); }); }
-      }
-      // пагода на среднем плане
-      const pgx = w * 0.62 - ((camX * 0.25) % (w * 1.6));
-      [0, 1, 2].forEach((lvl) => { const py = baseY - 200 + lvl * 60, pw = 120 - lvl * 26; ctx.fillStyle = '#2a1a24'; ctx.fillRect(pgx - pw / 2, py, pw, 40); ctx.fillStyle = '#7a2a2a'; ctx.beginPath(); ctx.moveTo(pgx - pw / 2 - 18, py + 4); ctx.lineTo(pgx, py - 22); ctx.lineTo(pgx + pw / 2 + 18, py + 4); ctx.lineTo(pgx + pw / 2 + 8, py + 10); ctx.lineTo(pgx - pw / 2 - 8, py + 10); ctx.fill(); ctx.fillStyle = '#a03a3a'; ctx.beginPath(); ctx.moveTo(pgx - pw / 2 - 18, py + 4); ctx.lineTo(pgx, py - 22); ctx.lineTo(pgx + pw / 2 + 18, py + 4); ctx.lineTo(pgx + pw / 2 + 12, py + 5); ctx.lineTo(pgx, py - 16); ctx.lineTo(pgx - pw / 2 - 12, py + 5); ctx.fill(); ctx.fillStyle = '#ffb347'; ctx.fillRect(pgx - 8, py + 12, 16, 20); });
-      // гирлянды фонарей между крышами (средний план)
-      for (let x = -((camX * 0.6) % 520) - 520; x < w; x += 520) { ctx.strokeStyle = '#2a2a3a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, baseY - 60); ctx.quadraticCurveTo(x + 260, baseY + 10, x + 520, baseY - 60); ctx.stroke(); for (let j = 1; j < 8; j++) { const u = j / 8, lx = x + u * 520, ly = baseY - 60 + Math.sin(u * Math.PI) * 60 + Math.sin(time * 2 + j) * 3, fl = 0.75 + 0.25 * Math.sin(time * 6 + j); ctx.fillStyle = `rgba(255,150,60,${0.14 * fl})`; ctx.beginPath(); ctx.arc(lx, ly + 10, 22, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d0402a'; ctx.fillRect(lx - 6, ly, 12, 18); ctx.fillStyle = '#ffa04a'; ctx.fillRect(lx - 4, ly + 3, 8, 12); ctx.fillStyle = '#3a2a1a'; ctx.fillRect(lx - 7, ly - 2, 14, 3); ctx.fillRect(lx - 7, ly + 18, 14, 2); } }
-      // крыши по рядам: платформы с провалами, черепица, фонари
-      for (let r = 0; r < rows; r++) {
-        const rowY = baseY + r * rowH + rowH * 0.6;
-        const first = Math.floor((camX - 200) / (ROOF_W + GAP_W));
-        for (let k = first; k * (ROOF_W + GAP_W) < camX + w + 200; k++) {
-          const rf = roofAt(k * 7 + r); const x = k * (ROOF_W + GAP_W) - camX;
-          const top = rowY;
-          // в провале видна улица далеко внизу: фонари и крошечные прохожие
-          if (r === rows - 1) { ctx.fillStyle = '#0e0a18'; ctx.fillRect(x + ROOF_W, top, GAP_W, h - top); ctx.fillStyle = '#ffb347'; ctx.fillRect(x + ROOF_W + 20, h - 40, 4, 4); ctx.fillRect(x + ROOF_W + 60, h - 46, 4, 4); ctx.fillStyle = '#ffe0a0'; ctx.fillRect(x + ROOF_W + 10 + ((time * 20 + k * 30) % 60), h - 26, 3, 5); }
-          ctx.fillStyle = rf.color; ctx.fillRect(x, top, ROOF_W, h - top);
-          const dark = 'rgba(0,0,0,0.28)', light = 'rgba(255,255,255,0.12)';
-          for (let ty = top; ty < h; ty += 10) for (let tx = x + ((ty - top) / 10 % 2) * 12; tx < x + ROOF_W; tx += 24) { ctx.fillStyle = dark; ctx.fillRect(tx, ty + 6, 22, 3); ctx.fillStyle = light; ctx.fillRect(tx, ty, 22, 2); ctx.fillStyle = dark; ctx.fillRect(tx + 22, ty, 2, 10); }
-          ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x, top, 8, h - top); ctx.fillRect(x + ROOF_W - 8, top, 8, h - top);
-          ctx.fillStyle = '#2a1a2a'; ctx.fillRect(x - 6, top - 8, ROOF_W + 12, 10); ctx.fillStyle = '#4a2a3a'; ctx.fillRect(x - 6, top - 8, ROOF_W + 12, 3);
-          if (k % 2 === 0) { ctx.fillStyle = '#3a2a3a'; ctx.fillRect(x + 220, top - 26, 18, 26); ctx.fillStyle = '#2a1a2a'; ctx.fillRect(x + 216, top - 30, 26, 6); }
-          if (k % 5 === 2) { ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x + 60, top - 46, 3, 46); ctx.fillRect(x + 48, top - 44, 28, 2); ctx.fillStyle = Math.floor(time * 2) % 2 ? '#ff5050' : '#802020'; ctx.fillRect(x + 60, top - 50, 4, 4); }
-          ctx.fillStyle = '#ff8c42'; ctx.fillRect(x + 20, top - 30, 8, 20); ctx.fillStyle = '#ffe9a0'; ctx.fillRect(x + 18, top - 26, 12, 8);
-          ctx.fillStyle = 'rgba(255,200,120,0.08)'; ctx.fillRect(x + 6, top - 40, 36, 44);
-          if (r === 0 && k % 3 === 1) { ctx.fillStyle = '#3a2a3a'; ctx.fillRect(x + 140, top - 40, 26, 40); ctx.fillStyle = '#e53935'; ctx.fillRect(x + 130, top - 44, 46, 6); }
+      const towerX = FINISH_X + 6 - camX;
+      beginCamera(ctx, w, h, time, flashAt !== null ? [flashAt] : [], () => ({ x: FINISH_X - camX, y: yOff + 190 }), { level: 1.14, dur: 1.2, amp: 4 });
+
+      // 1. НЕБО: плита с луной, мерцание звёзд, ореол луны, летучие мыши
+      ctx.fillStyle = '#0c0d2b'; ctx.fillRect(0, 0, w, h);
+      const sky = img('sky'); if (sky) ctx.drawImage(sky, Math.round(-30 - camX * 0.015), Math.min(0, yOff));
+      const moonX = 570 - 30 - camX * 0.015, moonY = Math.min(0, yOff) + 115;
+      glow(ctx, moonX, moonY, 120, '150,170,255', 0.16 + 0.03 * Math.sin(time * 0.8));
+      for (let i = 0; i < 26; i++) { const tw = Math.sin(time * 2.5 + i * 1.9); if (tw < 0.55) continue; ctx.fillStyle = '#ffffff'; const sx = (i * 89) % w, sy = (i * 53) % Math.max(60, h - 230); ctx.fillRect(sx, sy, 1, 1); if (tw > 0.9) { ctx.fillRect(sx - 1, sy, 3, 1); ctx.fillRect(sx, sy - 1, 1, 3); } }
+      for (let i = 0; i < 3; i++) { const bx = ((time * (22 + i * 6) + i * 260) % (w + 80)) - 40, by = 60 + i * 26 + Math.sin(time * 2 + i) * 10 + Math.min(0, yOff), fl = Math.sin(time * 14 + i) > 0 ? 2 : -1; ctx.fillStyle = '#0a0a1e'; ctx.fillRect(bx - 1, by, 3, 2); ctx.fillRect(bx - 5, by - fl, 4, 1); ctx.fillRect(bx + 2, by - fl, 4, 1); }
+
+      // 2. ДАЛЬНИЙ ПЛАН: деревня со скалой Хокаге, за дымкой
+      drawTiled(ctx, img('far'), camX * 0.08, yOff, w);
+      for (let i = 0; i < 5; i++) fogBank(ctx, ((i * 210 + time * 5 - camX * 0.12) % (w + 300) + w + 300) % (w + 300) - 150, yOff + 218 + (i % 2) * 22, 150, 9, 'rgba(90,110,190,0.10)');
+
+      // 3. СРЕДНИЙ ПЛАН: дома с фонарями. Окна и фонари живут: ореолы мерцают поверх плиты
+      const mid = img('mid');
+      if (mid) {
+        const scroll = camX * 0.4, first = Math.floor(scroll / 640);
+        for (let k = first; k * 640 - scroll < w; k++) {
+          const x = Math.round(k * 640 - scroll), mirrored = ((k % 2) + 2) % 2 === 1;
+          if (mirrored) { ctx.save(); ctx.translate(x + 640, yOff); ctx.scale(-1, 1); ctx.drawImage(mid, 0, 0); ctx.restore(); } else ctx.drawImage(mid, x, yOff);
+          MID_LIGHTS.forEach(([lx, ly, r], i) => glow(ctx, x + (mirrored ? 640 - lx : lx), yOff + ly, r * 1.8, '255,150,60', 0.22 * flick(i + k * 3)));
         }
       }
-      // башня Хокаге на финише
-      const fx = Math.round(finishX - camX);
-      ctx.fillStyle = '#b8503a'; ctx.fillRect(fx, baseY - 160, 160, h - baseY + 160);
-      ctx.fillStyle = '#e8a060'; ctx.fillRect(fx - 10, baseY - 180, 180, 24); ctx.fillRect(fx + 10, baseY - 120, 140, 12);
-      ctx.fillStyle = '#fff'; ctx.fillRect(fx + 60, baseY - 150, 40, 40); ctx.fillStyle = '#e53935'; ctx.font = "16px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('火', fx + 70, baseY - 140);
-      ctx.fillStyle = '#21a038'; ctx.fillRect(fx + 70, baseY - 230, 4, 50); ctx.fillRect(fx + 74, baseY - 230, 36, 20);
+      for (let i = 0; i < 4; i++) fogBank(ctx, ((i * 260 - time * 9 - camX * 0.5) % (w + 400) + w + 400) % (w + 400) - 200, yOff + 300 + (i % 2) * 18, 190, 12, 'rgba(40,50,120,0.16)');
+
+      // 4. БАШНЯ ХОКАГЕ за последней крышей: флаг Сбера на баке, свет из окон
+      const tower = img('tower');
+      if (tower && towerX < w + 20) {
+        ctx.drawImage(tower, Math.round(towerX), yOff - 12);
+        glow(ctx, towerX + 100, yOff + 98, 46, '255,160,70', 0.3 * flick(40));
+        const fxp = Math.round(towerX + 118), fyp = yOff - 30; ctx.fillStyle = '#c9c9d6'; ctx.fillRect(fxp, fyp, 1, 24);
+        for (let c = 0; c < 16; c++) { const wv = Math.round(Math.sin(time * 6 - c * 0.5) * 1.5); ctx.fillStyle = c % 4 === 0 ? '#2fc24f' : '#21a038'; ctx.fillRect(fxp + 1 + c, fyp + 1 + wv, 1, 9); }
+      }
+
+      // 5. ИГРОВОЙ ПЛАН: крыши из двух половин плиты, в провалах глубина, торцы с лунным кантом
+      const roof = img('roof'), props = img('props');
+      TRACK.forEach((pc, i) => {
+        const x = pc.x - camX; if (x > w + 10 || x + pc.w + GAP < -10) return;
+        if (i < TRACK.length - 1) { const gx = x + pc.w; const g = ctx.createLinearGradient(0, yOff + RIDGE, 0, h); g.addColorStop(0, 'rgba(6,6,20,0)'); g.addColorStop(0.5, 'rgba(6,6,20,0.55)'); g.addColorStop(1, 'rgba(6,6,20,0.9)'); ctx.fillStyle = g; ctx.fillRect(gx, yOff + RIDGE, GAP, h - yOff - RIDGE); glow(ctx, gx + GAP / 2, h - 14, 30, '255,150,60', 0.25 * flick(i + 20)); ctx.fillStyle = '#ffd98a'; ctx.fillRect(Math.round(gx + 10 + ((time * 9 + i * 17) % (GAP - 20))), h - 9, 2, 4); }
+        if (roof) ctx.drawImage(roof, pc.sx, 0, pc.w, 360, x, yOff, pc.w, 360); else { ctx.fillStyle = '#1e2440'; ctx.fillRect(x, yOff + RIDGE, pc.w, 155); }
+        ctx.fillStyle = '#0c0c1e'; ctx.fillRect(x + pc.w - 3, yOff + RIDGE + 2, 3, 153); ctx.fillRect(x, yOff + RIDGE + 2, 3, 153);
+        ctx.fillStyle = '#5a6aa8'; ctx.fillRect(x + pc.w - 1, yOff + RIDGE + 2, 1, 60); ctx.fillStyle = '#2a3260'; ctx.fillRect(x, yOff + RIDGE + 2, 1, 60);
+        if (props && pc.id === 'A') { const f = Math.floor(time * 6 + i) % 4; ctx.drawImage(props, PROP.cols[f], PROP.flag.y, PROP.w, PROP.flag.h, x - 8, yOff + 272, PROP.w, PROP.flag.h); }
+        pc.smoke.forEach(([sx, sy], j) => { for (let q = 0; q < 5; q++) { const age = ((time * 0.5 + q / 5 + j * 0.13 + i * 0.07) % 1), px = x + sx + Math.sin(age * 5 + q + i) * 3 + age * 10, py = yOff + sy - age * 46, s = 2 + Math.round(age * 5); ctx.fillStyle = `rgba(170,180,215,${(0.42 * (1 - age)).toFixed(2)})`; ctx.fillRect(Math.round(px), Math.round(py), s, s - 1); } });
+      });
+      if (props && towerX < w + 20) { const f = Math.floor(time * 5) % 4; ctx.drawImage(props, PROP.cols[f], PROP.lantern.y, PROP.w, PROP.lantern.h, Math.round(FINISH_X - 120 - camX), yOff + RIDGE - 96, PROP.w, PROP.lantern.h); }
 
       // сюрикены: летят через ряд, бегуны в этом ряду пригибаются
-      shurikens.forEach((s) => {
+      shurikens.forEach((s, i) => {
         const age = time - s.at; if (age < 0 || age > 1.2) return;
-        const sx = w + 40 - age * (w + 120), sy = baseY + s.row * rowH + rowH * 0.6 - sprH * 0.55;
-        ctx.save(); ctx.translate(sx, sy); ctx.rotate(age * 25); ctx.fillStyle = '#cfd8dc'; for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.fillRect(-3, -14, 6, 14); } ctx.restore();
-        if (age < 0.05 && onEvent) onEvent('whoosh');
+        if (!fired.has(i)) { fired.add(i); if (onEvent) onEvent('whoosh'); }
+        const sx = w + 20 - age * (w + 60) / 1.2, sy = feetY(s.row) - 34, ph = Math.floor(age * 30) % 2;
+        ctx.fillStyle = 'rgba(200,220,255,0.35)'; ctx.fillRect(Math.round(sx) + 6, sy, 26, 1); ctx.fillRect(Math.round(sx) + 10, sy + 2, 16, 1);
+        ctx.fillStyle = '#dfe6f2'; if (ph) { ctx.fillRect(Math.round(sx) - 5, sy - 1, 11, 3); ctx.fillRect(Math.round(sx) - 1, sy - 5, 3, 11); } else { for (let d = -4; d <= 4; d++) { ctx.fillRect(Math.round(sx) + d - 1, sy + d - 1, 2, 2); ctx.fillRect(Math.round(sx) + d - 1, sy - d - 1, 2, 2); } }
+        ctx.fillStyle = '#5a6478'; ctx.fillRect(Math.round(sx), sy, 1, 1);
       });
 
-      // бегуны
-      const orderDraw = [...runners.keys()].sort((a, b) => runners[a].row - runners[b].row);
-      if (time - lastPuff > 0.08 && t < 1) { lastPuff = time; runners.forEach((r, i) => { const x = startX + ps[i] * L - camX; if (x > -50 && x < w + 50) particles.puff(x + 16 * scale, baseY + r.row * rowH + rowH * 0.6 - 4, time, rnd, 'rgba(200,190,220,0.5)'); }); }
+      // бегуны: контактная тень, пыль из-под ног, подписи в сетке буфера
+      if (time - lastPuff > 0.1 && t < 1) { lastPuff = time; runners.forEach((r, i) => { const x = START_X + ps[i] * L - camX; if (x > -30 && x < w + 30 && !gapAt(START_X + ps[i] * L, 0)) particles.puff(x - 6, feetY(r.row) - 2, time, rnd, 'rgba(150,160,210,0.5)'); }); }
       particles.draw(ctx, time);
-      orderDraw.forEach((i) => {
-        const r = runners[i];
-        const worldX = startX + ps[i] * L; const x = Math.round(worldX - camX);
-        if (x + sprW < -80 || x > w + 80) return;
-        const rowY = baseY + r.row * rowH + rowH * 0.6;
-        // прыжок над провалом: положение внутри пары крыша+провал
-        const within = ((worldX % (ROOF_W + GAP_W)) + (ROOF_W + GAP_W)) % (ROOF_W + GAP_W);
-        let jump = 0, slipping = false;
-        if (within > ROOF_W - 30 && within < ROOF_W + GAP_W + 20) { const u = (within - (ROOF_W - 30)) / (GAP_W + 50); jump = Math.sin(u * Math.PI) * 70; }
-        if (r.slipAt !== null && Math.abs(t - r.slipAt) < 0.035 && within > ROOF_W + GAP_W) { slipping = true; }
+      const labels = [];
+      [...runners.keys()].sort((a, b) => runners[a].row - runners[b].row).forEach((i) => {
+        const r = runners[i]; const worldX = START_X + ps[i] * L; const x = Math.round(worldX - camX) - 32;
+        if (x < -80 || x > w + 20) return;
+        const fy = feetY(r.row); const g = gapAt(worldX, 14);
+        let jump = 0; if (g) jump = Math.sin(((worldX - g.a) / (g.b - g.a)) * Math.PI) * 30;
+        const slipping = r.slipAt !== null && Math.abs(t - r.slipAt) < 0.035 && !g;
         const duck = shurikens.some((s) => s.row === r.row && time - s.at > 0.2 && time - s.at < 0.7);
-        const y = Math.round(rowY - sprH + 4 - jump + (duck ? 10 : 0) + (slipping ? 14 : 0));
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(x + 20 * scale, rowY - 3, 24 * scale, 3);
-        const fr = t < 1 ? (jump > 5 ? 'run3' : slipping ? 'hurt0' : runFrame(time, 11 + r.f * 2, r.gait)) : (r.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'stand-right');
-        drawSprite(ctx, r.p.person, fr, x, y, scale);
-        if (slipping) { ctx.fillStyle = '#ff5050'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.fillText('!', x + sprW / 2, y - 26); }
+        const y = Math.round(fy - 62 - jump + (duck ? 5 : 0) + (slipping ? 6 : 0));
+        if (!g) { ctx.fillStyle = 'rgba(4,4,16,0.45)'; ctx.fillRect(x + 20, fy - 1, 24, 2); ctx.fillRect(x + 23, fy + 1, 18, 1); }
+        const fr = t < 1 ? (jump > 4 ? 'run3' : slipping ? 'hurt0' : runFrame(time, 11 + r.f * 2, r.gait)) : (r.rank === 0 ? (Math.floor(time * 5) % 2 ? 'cheer' : 'cheer2') : 'stand-right');
+        drawSprite(ctx, r.p.person, fr, x, y, 1);
+        if (slipping) { ctx.fillStyle = '#ff5050'; ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('!', x + 30, y - 4); }
         const first = t >= 1 && r.rank === 0;
-        label(ctx, r.p.name, x + sprW / 2, y - 6, scale >= 3 ? 9 : 8, first ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', first ? '#ffd166' : null);
+        labels[i] = { text: r.p.name, cx: x + 32, y: y + 2, fg: first ? '#ffd166' : '#f4ecd8', border: first ? '#ffd166' : null };
       });
-      drawAmbient(ctx, 'embers', w, h, time, 18, camX);
-      if (t < 1) { const li = ps.indexOf(leader); const lx = Math.round(startX + ps[li] * L - camX); if (lx > 0 && lx < w) speedLines(ctx, lx - 6, baseY + runners[li].row * rowH + rowH * 0.6 - sprH * 0.6, 5, 28, 'rgba(200,200,255,0.5)'); }
-      vignette(ctx, w, h, 0.45);
+      placeLabels(ctx, labels.filter(Boolean));
+
+      // 6. СВЕТ поверх персонажей: фонари на столбах красят крышу и тех, кто пробегает рядом
+      TRACK.forEach((pc, i) => { const lx = pc.x + pc.lantern[0] - camX, ly = yOff + pc.lantern[1]; if (lx < -80 || lx > w + 80) return; const f = flick(i); glow(ctx, lx, ly, 58, '255,130,50', 0.42 * f); glow(ctx, lx, ly, 14, '255,220,150', 0.5 * f); lightPool(ctx, lx, yOff + RIDGE + 22, 70, 16, '255,140,60', 0.3 * f); });
+      if (towerX < w + 20) { const lx = FINISH_X - 120 + 46 - camX; glow(ctx, lx, yOff + RIDGE - 56, 50, '255,130,50', 0.4 * flick(33)); lightPool(ctx, lx, yOff + RIDGE + 24, 60, 14, '255,140,60', 0.28 * flick(33)); }
+      drawAmbient(ctx, 'leaves', w, h, time, 10, camX);
+      for (let i = 0; i < 10; i++) { const ex = ((i * 131 - camX * 1.1 + Math.sin(time * 1.3 + i) * 12) % (w + 40) + w + 40) % (w + 40) - 20, ey = h - ((i * 53 + time * 22) % (h * 0.6)); ctx.fillStyle = i % 3 ? 'rgba(255,160,60,0.9)' : 'rgba(255,225,130,0.9)'; ctx.fillRect(Math.round(ex), Math.round(ey), 1, 1); }
+
+      // 7. ПЕРЕДНИЙ ПЛАН: лента из плиты и её зеркальной копии идёт вдвое быстрее сцены. Крона прижата к верху кадра,
+      // забор опущен, чтобы не закрывать бегунов.
+      const fg = img('fg');
+      if (fg) {
+        // за весь пробег лента проходит ровно два своих периода (1280), поэтому старт и финиш попадают на один и тот же пустой участок
+        const scroll = camX * (2560 / camMax) + 380, first = Math.floor(scroll / 640);
+        for (let k = first; k * 640 - scroll < w; k++) {
+          const x = Math.round(k * 640 - scroll), mirrored = ((k % 2) + 2) % 2 === 1;
+          ctx.save(); if (mirrored) { ctx.translate(x + 640, 0); ctx.scale(-1, 1); } else ctx.translate(x, 0);
+          ctx.drawImage(fg, 0, 0, 640, 170, 0, 0, 640, 170); ctx.drawImage(fg, 0, 144, 640, 216, 0, yOff + 170, 640, 216);
+          ctx.restore();
+          glow(ctx, x + (mirrored ? 550 : 90), 84, 70, '255,120,40', 0.4 * flick(50 + k));
+        }
+      }
+
+      vignette(ctx, w, h, 0.5);
+      if (flashAt !== null) { const k = Math.min(1, (time - flashAt) / 0.4), bar = Math.round(22 * k); ctx.fillStyle = '#05050f'; ctx.fillRect(0, 0, w, bar); ctx.fillRect(0, h - bar, w, bar); const warm = Math.max(0, 0.3 - (time - flashAt) * 0.6); if (warm > 0) { ctx.fillStyle = `rgba(255,170,80,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
       ctx.restore();
-      if (flashAt !== null && time - flashAt < 1.4) bigText(ctx, w, h, 'ХОКАГЕ!', time, '#ff6b6b');
-      if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(fx + 80, baseY - 180, time, rnd, { count: 80, speed: 280, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6 }); }
-      if (flashAt !== null) { const a = Math.max(0, 0.8 - (time - flashAt) * 2); if (a > 0) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.fillRect(0, 0, w, h); } }
+      if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ХОКАГЕ!', time, '#ff6b6b', 24);
+      if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(FINISH_X - camX, yOff + 150, time, rnd, { count: 70, speed: 140, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6, gravity: 150, size: 3 }); }
+      buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);
     };

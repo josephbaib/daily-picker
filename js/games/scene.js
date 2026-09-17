@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=73b8c62-1054';
+import { mulberry32 } from '../rng.js?v=bf6c143-0945';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=73b8c62-1054';
-import { mulberry32 as seededRnd } from '../rng.js?v=73b8c62-1054';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=bf6c143-0945';
+import { mulberry32 as seededRnd } from '../rng.js?v=bf6c143-0945';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
@@ -218,4 +218,68 @@ export function drawPuff(ctx, x, y, age, size = 30) {
   const k = Math.min(1, age / 0.5);
   ctx.fillStyle = `rgba(230,230,240,${0.9 * (1 - k)})`;
   for (let i = 0; i < 7; i++) { const a = i * 0.9, r = size * (0.5 + 0.5 * k); ctx.beginPath(); ctx.arc(x + Math.cos(a) * r * k, y + Math.sin(a) * r * k * 0.6, size * 0.45 * (1 - k * 0.4), 0, Math.PI * 2); ctx.fill(); }
+}
+
+// ---------- Буфер и плиты: схема из docs/BENCHMARK.md ----------
+// Вся сцена рисуется в буфер высотой около 360 пикселей и выводится на экран увеличением без сглаживания,
+// поэтому у спрайтов, фона и надписей одна пиксельная сетка. Фон собирается из нарисованных плит (PNG).
+import { VERSION } from '../version.js?v=bf6c143-0945';
+const IMAGES = new Map(), READY = new Map();
+export function loadImage(path) {
+  if (!IMAGES.has(path)) IMAGES.set(path, new Promise((resolve) => { const img = new Image(); img.onload = () => { READY.set(path, img); resolve(img); }; img.onerror = () => resolve(null); img.src = path + '?v=' + VERSION; }));
+  return IMAGES.get(path);
+}
+export function plate(path) { return READY.get(path) || null; }
+export function makeBuffer(canvas, baseH = 360) {
+  const buf = document.createElement('canvas'); const bctx = buf.getContext('2d'); let k = 2;
+  return {
+    ctx: bctx,
+    fit() { // целый или полуторный масштаб на больших окнах, дробный только на совсем маленьких
+      const w = canvas.width, h = canvas.height;
+      k = h >= 700 ? Math.max(1, Math.round((h / baseH) * 2) / 2) : Math.max(0.5, h / baseH);
+      const bw = Math.ceil(w / k), bh = Math.ceil(h / k);
+      if (buf.width !== bw || buf.height !== bh) { buf.width = bw; buf.height = bh; }
+      bctx.imageSmoothingEnabled = false;
+      return { w: bw, h: bh, k };
+    },
+    blit() { const c = canvas.getContext('2d'); c.imageSmoothingEnabled = false; c.drawImage(buf, 0, 0, Math.round(buf.width * k), Math.round(buf.height * k)); },
+  };
+}
+// Плита, повторённая по горизонтали. Каждая вторая копия зеркальная, поэтому шва нет даже у нестыкующейся картинки.
+export function drawTiled(ctx, img, scrollX, y, viewW, mirrorAlt = true) {
+  if (!img) return; const tw = img.width; const first = Math.floor(scrollX / tw);
+  for (let k = first; k * tw - scrollX < viewW; k++) {
+    const x = Math.round(k * tw - scrollX);
+    if (mirrorAlt && ((k % 2) + 2) % 2 === 1) { ctx.save(); ctx.translate(x + tw, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0); ctx.restore(); } else ctx.drawImage(img, x, y);
+  }
+}
+// Свет: ореол складывается с картинкой (additive), поэтому красит соседние поверхности, а не закрывает их.
+export function glow(ctx, x, y, r, rgb, alpha) {
+  if (alpha <= 0) return; ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(${rgb},${alpha})`); g.addColorStop(0.4, `rgba(${rgb},${alpha * 0.4})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
+}
+export function lightPool(ctx, x, y, rx, ry, rgb, alpha) { // пятно света на поверхности под источником
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(x, y); ctx.scale(1, ry / rx);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(${rgb},${alpha})`); g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.fillStyle = g; ctx.fillRect(-rx, -rx, rx * 2, rx * 2); ctx.restore();
+}
+// Подпись в сетке буфера: компактная, с рамкой в один пиксель.
+export function pixLabel(ctx, text, cx, y, fg = '#f4ecd8', border = null) {
+  ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  const tw = Math.ceil(ctx.measureText(text).width), w = tw + 5, h = 12, x = Math.round(cx - w / 2);
+  ctx.fillStyle = 'rgba(8,6,20,0.82)'; ctx.fillRect(x, y, w, h);
+  if (border) { ctx.fillStyle = border; ctx.fillRect(x, y, w, 1); ctx.fillRect(x, y + h - 1, w, 1); ctx.fillRect(x, y, 1, h); ctx.fillRect(x + w - 1, y, 1, h); }
+  ctx.fillStyle = fg; ctx.fillText(text, x + 3, y + 2);
+}
+// Туман в пиксельной сетке: линза из горизонтальных полос.
+export function fogBank(ctx, cx, cy, halfW, halfH, color) {
+  ctx.fillStyle = color; for (let dy = -halfH; dy <= halfH; dy += 2) { const k = 1 - (dy / (halfH + 1)) ** 2; const hw = Math.round(halfW * k); ctx.fillRect(Math.round(cx - hw), Math.round(cy + dy), hw * 2, 2); }
+}
+// Подписи без наложений: каждая следующая поднимается, пока не найдёт свободное место. Порядок стабильный (по номеру участника).
+export function placeLabels(ctx, items) { // items: [{ text, cx, y, fg, border }]
+  ctx.font = "8px 'Press Start 2P', monospace"; const placed = [];
+  items.forEach((it) => { const w = Math.ceil(ctx.measureText(it.text).width) + 5; let x = Math.round(it.cx - w / 2), y = it.y, guard = 0;
+    while (guard++ < 8 && placed.some((p) => x < p.x + p.w + 1 && x + w + 1 > p.x && y < p.y + 13 && y + 13 > p.y)) y -= 13;
+    placed.push({ x, y, w }); pixLabel(ctx, it.text, it.cx, y, it.fg, it.border); });
 }

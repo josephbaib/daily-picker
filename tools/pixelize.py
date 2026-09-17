@@ -1,18 +1,30 @@
 #!/usr/bin/env python3
-"""Переводит картинку из генератора в честный пиксель-арт: уменьшает до сетки буфера, сводит к палитре, убирает ровный фон.
+"""Переводит картинку из генератора в честный пиксель-арт: вырезает зелёный фон, уменьшает до сетки буфера, сводит к палитре.
 
-    python3 tools/pixelize.py вход.png выход.png --width 640 --colors 32 [--dither] [--key '#00ff00' --tol 60]
+    python3 tools/pixelize.py вход.png выход.png --width 640 --colors 32 [--dither] [--green] [--crop x0,y0,x1,y1]
 
 --width   ширина в пикселях буфера (высота по пропорции)
 --colors  размер палитры после квантования
---dither  дизеринг Флойда-Стейнберга при квантовании (иначе плоские заливки)
---key     цвет ровного фона, который вырезать в прозрачность; --tol допуск по RGB
+--dither  дизеринг Флойда-Стейнберга при квантовании (для неба и градиентов)
+--green   вырезать ровный зелёный фон (#00ff00) в прозрачность, с подавлением зелёной каймы
+--crop    вырезать область исходника (в долях 0..1) до обработки
 """
 import argparse
-from PIL import Image
+from PIL import Image, ImageChops, ImageFilter, ImageMath
 
-def hexrgb(s):
-    s = s.lstrip('#'); return tuple(int(s[i:i + 2], 16) for i in (0, 2, 4))
+def thr(ch, v): return ch.point(lambda x: 255 if x > v else 0)
+
+def key_green(im):
+    r, g, b, _ = im.split()
+    m = ImageChops.lighter(r, b)
+    diff = ImageChops.subtract(g, m)
+    bg = ImageChops.multiply(thr(g, 150), thr(diff, 70))
+    alpha = ImageChops.invert(bg)
+    # кайма: непрозрачные пиксели рядом с фоном, в которых зелёный заметно выше остальных
+    near = bg.filter(ImageFilter.MaxFilter(7))
+    spill = ImageChops.multiply(ImageChops.multiply(near, alpha), thr(diff, 25))
+    g2 = Image.composite(m, g, spill)
+    return Image.merge('RGBA', (r, g2, b, alpha))
 
 def main():
     ap = argparse.ArgumentParser()
@@ -20,23 +32,27 @@ def main():
     ap.add_argument('--width', type=int, default=640)
     ap.add_argument('--colors', type=int, default=32)
     ap.add_argument('--dither', action='store_true')
-    ap.add_argument('--key'); ap.add_argument('--tol', type=int, default=60)
-    a = ap.parse_args()
-    im = Image.open(a.src).convert('RGBA')
-    w, h = im.size
-    nh = max(1, round(h * a.width / w))
-    im = im.resize((a.width, nh), Image.BOX)  # усреднение по блокам даёт чистую сетку без «мыла»
-    alpha = im.getchannel('A')
-    if a.key:
-        kr, kg, kb = hexrgb(a.key); px = im.load(); ap_ = alpha.load()
-        for y in range(nh):
-            for x in range(a.width):
-                r, g, b, _ = px[x, y]
-                if abs(r - kr) + abs(g - kg) + abs(b - kb) <= a.tol: ap_[x, y] = 0
-    rgb = im.convert('RGB').quantize(colors=a.colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG if a.dither else Image.Dither.NONE).convert('RGB')
-    out = rgb.convert('RGBA'); out.putalpha(alpha.point(lambda v: 255 if v > 127 else 0))
-    out.save(a.dst)
-    print(f'{a.dst}: {a.width}×{nh}, палитра {a.colors}')
+    ap.add_argument('--green', action='store_true')
+    ap.add_argument('--crop')
+    o = ap.parse_args()
+    im = Image.open(o.src).convert('RGBA')
+    if o.crop:
+        x0, y0, x1, y1 = [float(v) for v in o.crop.split(',')]
+        im = im.crop((round(x0 * im.width), round(y0 * im.height), round(x1 * im.width), round(y1 * im.height)))
+    if o.green: im = key_green(im)
+    # уменьшение с предумноженной прозрачностью: края не тянут за собой цвет фона
+    nh = max(1, round(im.height * o.width / im.width)); size = (o.width, nh)
+    r, g, b, al = im.split()
+    al2 = al.resize(size, Image.BOX)
+    chans = []
+    for c in (r, g, b):
+        pm = ImageChops.multiply(c, al).resize(size, Image.BOX)
+        chans.append(ImageMath.lambda_eval(lambda _: _['convert'](_['min'](_['c'] * 255 / _['max'](_['a'], 1), 255), 'L'), c=pm, a=al2))
+    alpha = al2.point(lambda v: 255 if v >= 128 else 0)
+    q = Image.merge('RGB', chans).quantize(colors=o.colors, method=Image.Quantize.MEDIANCUT, kmeans=3, dither=Image.Dither.FLOYDSTEINBERG if o.dither else Image.Dither.NONE).convert('RGB')
+    out = q.convert('RGBA'); out.putalpha(alpha)
+    out.save(o.dst, optimize=True)
+    print(f'{o.dst}: {o.width}×{nh}, палитра {o.colors}')
 
 if __name__ == '__main__':
     main()

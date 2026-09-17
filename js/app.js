@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js?v=73b8c62-1054';
-import { computeOrder } from './order.js?v=73b8c62-1054';
-import { randomSeed } from './rng.js?v=73b8c62-1054';
-import { GAMES, gameById, pickGame } from './games/index.js?v=73b8c62-1054';
-import { sound } from './sound.js?v=73b8c62-1054';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=73b8c62-1054';
-import { mountResult } from './ui/result.js?v=73b8c62-1054';
-import * as db from './db.js?v=73b8c62-1054';
-import { NPCS } from './games/scene.js?v=73b8c62-1054';
+import { personFor, preload } from './sprite.js?v=bf6c143-0945';
+import { computeOrder } from './order.js?v=bf6c143-0945';
+import { randomSeed } from './rng.js?v=bf6c143-0945';
+import { GAMES, gameById, pickGame } from './games/index.js?v=bf6c143-0945';
+import { sound } from './sound.js?v=bf6c143-0945';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=bf6c143-0945';
+import { mountResult } from './ui/result.js?v=bf6c143-0945';
+import * as db from './db.js?v=bf6c143-0945';
+import { NPCS, loadImage } from './games/scene.js?v=bf6c143-0945';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -210,6 +210,7 @@ async function boot() {
     if (!game || ordered.length < 1) { setState('idle'); return; }
     const memo = lastFirstName(payload.orderIds);
     await preload(ordered.map((p) => p.person));
+    if (game.assets) await Promise.all(game.assets.map(loadImage));
     await fadeTo(() => { show('game'); fit(); });
     await new Promise((r) => setTimeout(r, 50)); fit();
     $('#hud-title').textContent = game.title;
@@ -264,6 +265,7 @@ async function boot() {
 
   // ---------- Данные ----------
   preload(NPCS);
+  GAMES.forEach((g) => (g.assets || []).forEach(loadImage)); // плиты сцен грузятся заранее, чтобы старт был одновременным
   if (room) applyRoom(room);
   try {
     await db.measureClock();

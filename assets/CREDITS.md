@@ -82,3 +82,7 @@
 ## Stud earrings
 - facial/earrings/stud: bluecarrot16 — CC0 — https://opengameart.org/content/lpc-jewelry
 
+
+## Фоновые плиты
+
+`assets/scenes/rooftops/*.png` — плиты сцены «Крыши», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`. Башня получена из средней плиты перекраской.

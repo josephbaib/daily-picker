@@ -100,3 +100,5 @@
 `assets/scenes/horror/*.png` — плиты и анимации сцены «Особняк», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
 
 `assets/scenes/chairs/*.png` — плиты и анимации сцены «Гонки на стульях», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
+
+`assets/scenes/elevator/*.png` — плиты и анимации сцены «Лифт», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.

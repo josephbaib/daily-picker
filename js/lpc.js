@@ -1,4 +1,4 @@
-import { VERSION } from './version.js?v=bf6c143-0945';
+import { VERSION } from './version.js?v=64a89a0-1027';
 // Персонажи из набора Universal LPC: слои-листы 64×64 накладываются по zPos.
 // Кадры берём из стандартной части листа: ходьба (ряды 8–11), «руки вверх» (ряд 2), падение (ряд 20).
 const BASE = 'assets/lpc/';
@@ -85,6 +85,7 @@ export function frameRect(name) {
   else if (name === 'stand-right') { row = ROWS.right; col = 0; }
   else if (name === 'stand-left') { row = ROWS.left; col = 0; }
   else if (name === 'back') { row = ROWS.up; col = 0; }
+  else if (name.startsWith('up')) { row = ROWS.up; col = 1 + (parseInt(name.slice(2), 10) % 8); }
   else if (name === 'cheer') { row = ROWS.down; col = 0; }
   else if (name === 'cheer2') { row = ROWS.down; col = 4; }
   else if (name.startsWith('slashl')) { row = ROWS.slashLeft; col = Math.min(5, parseInt(name.slice(6), 10) || 0); }

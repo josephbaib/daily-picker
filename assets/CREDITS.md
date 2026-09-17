@@ -86,3 +86,5 @@
 ## Фоновые плиты
 
 `assets/scenes/rooftops/*.png` — плиты сцены «Крыши», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`. Башня получена из средней плиты перекраской.
+
+`assets/scenes/elbrus/*.png` — плиты и анимации сцены «Эльбрус», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.

@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js?v=edc8964-1702';
-import { computeOrder } from './order.js?v=edc8964-1702';
-import { randomSeed } from './rng.js?v=edc8964-1702';
-import { GAMES, gameById, pickGame } from './games/index.js?v=edc8964-1702';
-import { sound } from './sound.js?v=edc8964-1702';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=edc8964-1702';
-import { mountResult } from './ui/result.js?v=edc8964-1702';
-import * as db from './db.js?v=edc8964-1702';
-import { NPCS, loadImage } from './games/scene.js?v=edc8964-1702';
+import { personFor, preload } from './sprite.js?v=85f63d0-1718';
+import { computeOrder } from './order.js?v=85f63d0-1718';
+import { randomSeed } from './rng.js?v=85f63d0-1718';
+import { GAMES, gameById, pickGame } from './games/index.js?v=85f63d0-1718';
+import { sound } from './sound.js?v=85f63d0-1718';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=85f63d0-1718';
+import { mountResult } from './ui/result.js?v=85f63d0-1718';
+import * as db from './db.js?v=85f63d0-1718';
+import { NPCS, loadImage } from './games/scene.js?v=85f63d0-1718';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');

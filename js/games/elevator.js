@@ -1,7 +1,7 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=edc8964-1702';
-import { mulberry32 } from '../rng.js?v=edc8964-1702';
-import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=edc8964-1702';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=edc8964-1702';
+import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=85f63d0-1718';
+import { mulberry32 } from '../rng.js?v=85f63d0-1718';
+import { label, makeParticles, drawDesk, drawPlant, nextFrame, cancelFrame, drawThreat, threatTarget, stepRandom } from './scene.js?v=85f63d0-1718';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=85f63d0-1718';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 const SLAB = 48; // перекрытие между этажами

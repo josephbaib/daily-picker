@@ -1,32 +1,40 @@
-import { drawSprite, SPRITE_W, SPRITE_H } from '../sprite.js?v=edc8964-1702';
-import { mulberry32 } from '../rng.js?v=edc8964-1702';
-import { label, makeParticles, drawStands, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=edc8964-1702';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=edc8964-1702';
+import { drawSprite } from '../sprite.js?v=85f63d0-1718';
+import { mulberry32 } from '../rng.js?v=85f63d0-1718';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, lightPool } from './scene.js?v=85f63d0-1718';
+import { drawActor, placeTags, fxFrame, FX_ASSET } from './stage.js?v=85f63d0-1718';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=85f63d0-1718';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
+// Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: зал, ринг, передние канаты и стол судей плитами, удары и звёзды с листа.
 const STEP = 1 / 30;
+const DIR = 'assets/scenes/brawl/';
+const ASSETS = ['arena', 'ring', 'ropes', 'fg', 'hit', 'stars', 'bell', 'crowd'].map((n) => DIR + n + '.png').concat([FX_ASSET]);
+const HIT = { w: 89, h: 49 }, STARS = { w: 81, h: 45 }, BELL = { w: 81, h: 45 }, CROWD = { w: 155, h: 85 };
+/* паспорт света: тёмный зал, жёсткий белый свет прожекторов сверху, тень прямо под ногами */
+const LIGHT = { id: 'brawl', mul: '205,210,238', tint: '20,20,70', tintK: 0.08, key: { dx: 0, dy: -1, rgb: '255,250,235', k: 0.7 }, shade: { rgb: '8,10,40', k: 0.4 }, warm: '255,240,200', shadow: 'rgba(0,4,40,0.5)', shadowLen: 0 };
+function hash(i) { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
 
 export default {
   id: 'brawl',
   title: 'Драка',
   description: 'Королевская битва на ринге под рёв трибун, и последний, кто устоит на ногах, забирает слово.',
   cover: 'assets/covers/brawl.jpg',
+  assets: ASSETS,
   duration: 20,
   minPlayers: 2,
   maxPlayers: 20,
 
   preview(ctx, w, h, t, people) {
-    ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = '#1a1626'; ctx.fillRect(0, 0, w, h);
-    drawStands(ctx, 0, h * 0.05, w, 2, t, 0, 1);
-    ctx.fillStyle = '#c9c0a8'; ctx.fillRect(w * 0.1, h * 0.5, w * 0.8, h * 0.45);
-    ctx.fillStyle = '#e53935'; for (let i = 0; i < 3; i++) ctx.fillRect(w * 0.1, h * 0.5 - 10 - i * 10, w * 0.8, 3);
-    people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, i === 1 ? 'hurt' + (Math.floor(t * 4) % 3) : 'slash' + (Math.floor(t * 8 + i) % 6), w * 0.2 + i * w * 0.24, h * 0.5 - SPRITE_H * 1.5 + 20, 1.5));
+    ctx.imageSmoothingEnabled = false; ctx.fillStyle = '#0a0e1e'; ctx.fillRect(0, 0, w, h);
+    const ring = plate(DIR + 'ring.png'); if (ring) ctx.drawImage(ring, 0, 100, 640, 260, 0, h - w * 0.41, w, w * 0.41);
+    people.slice(0, 2).forEach((p, i) => drawSprite(ctx, p.person, 'slash' + (Math.floor(t * 8 + i) % 6), w * 0.25 + i * w * 0.3, h * 0.35, 1.5));
   },
 
   play({ canvas, participants, order, seed, onFreeze, onEvent }) {
-    const ctx = canvas.getContext('2d');
+    const buffer = makeBuffer(canvas);
+    const ctx = buffer.ctx;
+    const img = (name) => plate(DIR + name + '.png');
     const n = participants.length;
     const rnd = mulberry32(seed);
     const victims = [...order].reverse().slice(0, n - 1);
@@ -42,7 +50,7 @@ export default {
 
     // состояние бойцов в нормированных координатах ринга (0..1)
     const F = participants.map((p, i) => ({
-      p, id: p.id, x: 0.15 + (i % 4) * 0.23 + rnd() * 0.05, y: 0.2 + Math.floor(i / 4) * 0.3 + rnd() * 0.1,
+      p, id: p.id, x: 0.15 + (i % 4) * 0.23 + rnd() * 0.05, y: 0.22 + (Math.floor(i / 4) % 3) * 0.28 + ((i % 4) % 2) * 0.12 + rnd() * 0.08,
       vx: 0, vy: 0, dir: 1, target: null, retarget: 0, phase: 'chase', phaseT: 0, hitFlash: 0, hp: 1,
       speed: 0.22 + rnd() * 0.1, out: null, koTime: koAt.get(p.id) || null, ringside: rnd(),
     }));
@@ -111,91 +119,78 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
+      const hit = img('hit'), stars = img('stars');
       if (start === null) start = now;
       const t = warp((now - start) / 1000);
       while (simT + STEP <= t) step(STEP);
-      const w = canvas.width, h = canvas.height;
-      const scale = Math.max(2, Math.min(4, Math.floor(h / 260)));
-      const ringX = w * 0.12, ringY = h * 0.4, ringW = w * 0.76, ringH = h * 0.5;
+      const { w, h } = buffer.fit();
+      const x0 = Math.round((w - 640) / 2), yOff = h - 360;
       const winner = koCount === victims.length && t >= finalAt - 2.6;
-
-      // зал: три плана. Дальний: темнота с прожекторами и большим экраном. Средний: трибуны, баннеры, судейский стол.
-      // Ближний: ринг с холстом, канатами, угловыми столбами, юбкой и зрителями у ринга.
-      ctx.imageSmoothingEnabled = false;
-      const ringTop = ringY, ringBottom = ringY + ringH;
+      /* пол ринга на плите нарисован в перспективе: задняя кромка уже передней, бойцы ставятся по трапеции */
+      const floorPos = (fx, fy) => { const xl = 140 - 88 * fy, xr = 500 + 88 * fy; return { x: x0 + xl + fx * (xr - xl), y: yOff + 180 + fy * 82 }; };
       const outs = F.filter((f) => f.out).sort((a, b) => a.out.t - b.out.t);
-      beginCamera(ctx, w, h, simT, outs.map((f) => f.out.t), (i) => ({ x: ringX + outs[i].x * ringW, y: ringY + outs[i].y * ringH - 30 }), { level: 1.3, dur: 0.9, amp: 10 });
-      ctx.fillStyle = '#0c0a14'; ctx.fillRect(0, 0, w, h);
-      // прожекторы: три луча медленно ходят
-      [[0.2, 0.8], [0.5, 1.3], [0.8, 0.6]].forEach(([fx, sp], i) => { const sx = w * fx + Math.sin(t * sp + i) * w * 0.1; ctx.fillStyle = 'rgba(255,240,200,0.07)'; ctx.beginPath(); ctx.moveTo(w * fx, -10); ctx.lineTo(sx - 90, ringBottom); ctx.lineTo(sx + 90, ringBottom); ctx.fill(); ctx.fillStyle = '#3a3a48'; ctx.fillRect(w * fx - 10, 0, 20, 12); ctx.fillStyle = '#fff6d0'; ctx.fillRect(w * fx - 6, 10, 12, 4); });
-      // фермы под потолком и большой экран
-      ctx.fillStyle = '#2a2a38'; ctx.fillRect(0, 14, w, 4); for (let x = 0; x < w; x += 40) { ctx.fillRect(x, 14, 2, 14); ctx.fillRect(x + 20, 26, 22, 2); }
-      ctx.fillStyle = '#101018'; ctx.fillRect(w / 2 - 150, 30, 300, 62); ctx.fillStyle = '#1c1c2c'; ctx.fillRect(w / 2 - 146, 34, 292, 54);
-      ctx.fillStyle = '#ffd166'; ctx.font = "10px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.fillText('B2Bсосы FIGHT NIGHT', w / 2 - 110, 42); ctx.fillStyle = '#ff5050'; ctx.fillText(`K.O. ${koCount} / ${victims.length}`, w / 2 - 60, 64);
-      ctx.fillStyle = 'rgba(255,209,102,0.08)'; ctx.fillRect(w / 2 - 170, 92, 340, 30);
-      drawStands(ctx, 0, h * 0.14, w, 2, t, 0, Math.max(1, scale - 1));
-      // баннеры и вспышки камер на трибунах
-      for (let x = 20; x < w; x += 220) { ctx.fillStyle = '#21a038'; ctx.fillRect(x, h * 0.1, 120, 18); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.fillText('СБЕР', x + 40, h * 0.1 + 5); }
-      for (let i = 0; i < 6; i++) if (Math.floor(t * 9 + i * 3) % 11 === 0) { ctx.fillStyle = '#fff'; ctx.fillRect((i * 173 + 40) % w, h * 0.16 + (i % 2) * 24, 8, 6); }
-      // судейский стол и зрители у ринга
-      ctx.fillStyle = '#2a2436'; ctx.fillRect(ringX - 24, ringTop - 34, ringW + 48, ringBottom - ringTop + 70);
-      ctx.fillStyle = '#1a1626'; ctx.fillRect(0, ringBottom + 40, w, h - ringBottom - 40);
-      for (let x = 30; x < w; x += 70) drawNpcBust(ctx, Math.floor(x / 70) % 12, x, ringBottom + 44 + Math.round(Math.sin(t * 6 + x) * 2), 1, 30);
-      ctx.fillStyle = '#3a2a1a'; ctx.fillRect(w / 2 - 90, ringBottom + 30, 180, 12); ctx.fillStyle = '#fff'; ctx.fillRect(w / 2 - 90, ringBottom + 30, 180, 3); drawNpcBust(ctx, 5, w / 2 - 40, ringBottom + 2, 1, 30); drawNpcBust(ctx, 8, w / 2 + 10, ringBottom + 2, 1, 30);
-      // ринг: юбка с логотипом, холст с текстурой и пятнами, углы, канаты
-      ctx.fillStyle = '#1e2a6a'; ctx.fillRect(ringX - 10, ringBottom + 8, ringW + 20, 30); ctx.fillStyle = '#21a038'; ctx.fillRect(ringX + ringW / 2 - 40, ringBottom + 14, 80, 18); ctx.fillStyle = '#fff'; ctx.font = "7px 'Press Start 2P', monospace"; ctx.fillText('B2B', ringX + ringW / 2 - 12, ringBottom + 19);
-      ctx.fillStyle = '#d8cfb6'; ctx.fillRect(ringX - 10, ringTop - 20, ringW + 20, ringBottom - ringTop + 40);
-      ctx.fillStyle = '#cfc4a8'; for (let y = ringTop - 20; y < ringBottom + 20; y += 8) for (let x = ringX - 10 + ((y / 8) % 2) * 6; x < ringX + ringW + 10; x += 12) ctx.fillRect(x, y, 4, 2);
-      ctx.fillStyle = 'rgba(120,80,60,0.18)'; [[0.3, 0.4, 22], [0.7, 0.6, 16], [0.5, 0.8, 12]].forEach(([fx, fy, r]) => { ctx.beginPath(); ctx.ellipse(ringX + ringW * fx, ringTop + ringH * fy, r, r * 0.5, 0, 0, Math.PI * 2); ctx.fill(); });
-      ctx.fillStyle = '#e8e0cc'; ctx.fillRect(ringX - 10, ringTop - 20, ringW + 20, 3); ctx.fillStyle = '#b8ad92'; ctx.fillRect(ringX - 10, ringBottom + 17, ringW + 20, 3);
-      ctx.fillStyle = '#21a038'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, (ringTop + ringBottom) / 2, 46, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#d8cfb6'; ctx.beginPath(); ctx.arc(ringX + ringW / 2, (ringTop + ringBottom) / 2, 34, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#21a038'; ctx.fillRect(ringX + ringW / 2 - 8, (ringTop + ringBottom) / 2 - 8, 16, 16);
-      [0, 1, 2].forEach((i) => { ctx.fillStyle = i === 1 ? '#fff' : '#e53935'; ctx.fillRect(ringX - 10, ringTop - 36 - i * 14, ringW + 20, 4); ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(ringX - 10, ringTop - 33 - i * 14, ringW + 20, 1); for (let x = ringX + 30; x < ringX + ringW; x += 120) { ctx.fillStyle = '#c9c9d0'; ctx.fillRect(x, ringTop - 38 - i * 14, 6, 8); } });
-      [ringX - 10, ringX + ringW + 10].forEach((px, i) => { ctx.fillStyle = '#c9c9d0'; ctx.fillRect(px - 5, ringTop - 76, 10, 96); ctx.fillStyle = '#8a8a94'; ctx.fillRect(px + 2, ringTop - 76, 3, 96); ctx.fillStyle = i ? '#3c8cdc' : '#e53935'; ctx.fillRect(px - 9, ringTop - 78, 18, 30); ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(px - 9, ringTop - 78, 4, 30); });
-      // счётчик нокаутов и надпись FIGHT
+      beginCamera(ctx, w, h, simT, outs.map((f) => f.out.t), (i) => { const q = floorPos(Math.max(0, Math.min(1, outs[i].x)), Math.max(0, Math.min(1, outs[i].y))); return { x: q.x, y: q.y - 30 }; }, { level: 1.14, dur: 0.9, amp: 5 });
 
-      if (t < 1.4) { ctx.fillStyle = Math.floor(t * 8) % 2 ? '#ffd166' : '#ff6b6b'; ctx.font = "48px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.fillText('FIGHT!', w / 2, h * 0.5); ctx.textAlign = 'left'; }
-      if (simT - lastKo < 0.8 && koCount > 0) { ctx.fillStyle = '#ff6b6b'; ctx.font = "40px 'Press Start 2P', monospace"; ctx.textAlign = 'center'; ctx.fillText('K.O.', w / 2, h * 0.3); ctx.textAlign = 'left'; }
+      // 1. ЗАЛ: плита с трибунами и прожекторами, надписи на табло, лучи ходят по рингу, вспышки в толпе
+      ctx.fillStyle = '#070a16'; ctx.fillRect(0, 0, w, h);
+      drawTiled(ctx, img('arena'), -x0, yOff, w);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.font = "8px 'Press Start 2P', monospace";
+      ctx.fillStyle = '#ffd166'; ctx.fillText('FIGHT NIGHT', x0 + 320, yOff + 14); ctx.fillStyle = '#21a038'; ctx.fillText('B2Bсосы', x0 + 320, yOff + 26); ctx.fillStyle = '#ff5050'; ctx.fillText(`K.O. ${koCount}/${victims.length}`, x0 + 320, yOff + 40); ctx.textAlign = 'left';
+      for (let s = Math.floor(t / 0.11) - 3; s <= Math.floor(t / 0.11); s++) { const age = t - s * 0.11; if (age < 0 || age > 0.28) continue; fxFrame(ctx, 'flash', (age / 0.28) * 6, x0 + 20 + hash(s * 7 + 3) * 600, yOff + 120 + hash(s * 13) * 120, 1); }
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      [[150, 0.8], [320, 1.3], [490, 0.6]].forEach(([lx, sp], i) => { const tx = x0 + 320 + Math.sin(t * sp + i * 2) * 170, a = winner ? 0.03 : 0.07; ctx.fillStyle = `rgba(200,215,255,${a})`; ctx.beginPath(); ctx.moveTo(x0 + lx - 6, yOff + 20); ctx.lineTo(x0 + lx + 6, yOff + 20); ctx.lineTo(tx + 70, yOff + 262); ctx.lineTo(tx - 70, yOff + 262); ctx.fill(); });
+      ctx.restore();
 
-      // выбывшие лежат у ринга
-      F.filter((f) => f.out && simT - f.out.t > 1.3).forEach((f) => {
-        const rx = f.out.dir > 0 ? w - 60 - f.ringside * 30 : 10 + f.ringside * 30;
-        drawSprite(ctx, f.p.person, 'hurt5', rx, ringY + ringH + 50 - SPRITE_H * scale + f.ringside * 10, Math.max(2, scale - 1));
-      });
-      // бойцы по глубине
-      const drawOrder = [...F].sort((a, b) => a.y - b.y);
-      drawOrder.forEach((f) => {
-        const px = Math.round(ringX + f.x * ringW - SPRITE_W * scale / 2), py = Math.round(ringY + f.y * ringH - SPRITE_H * scale + 10);
+      // 2. Зрители у ринга видны сквозь задние канаты, у них срабатывают вспышки
+      const crowd = img('crowd');
+      if (crowd) for (let k = 0; k * CROWD.w < w + CROWD.w; k++) { const fr = Math.floor(t * 3 + hash(k + Math.floor(t * 1.5) * 7) * 4) % 4; ctx.drawImage(crowd, fr * CROWD.w, 0, CROWD.w, CROWD.h, k * CROWD.w - 20, yOff + 132 + Math.round(Math.sin(t * 5 + k) * 1), CROWD.w, CROWD.h); ctx.fillStyle = '#0d1428'; ctx.fillRect(k * CROWD.w - 20, yOff + 216, CROWD.w, 54); }
+
+      // 3. РИНГ, пятно света на холсте
+      const ring = img('ring'); if (ring) ctx.drawImage(ring, x0, yOff);
+      lightPool(ctx, x0 + 320, yOff + 222, 250, 50, '190,210,255', 0.22);
+
+
+      // 4. БОЙЦЫ по глубине: свет зала, удары и звёзды нокаута с листа, полоски здоровья, имена без плашек
+      const labels = [];
+      [...F].sort((a, b) => a.y - b.y).forEach((f) => {
+        const q = floorPos(Math.max(-0.4, Math.min(1.4, f.x)), Math.max(0, Math.min(1, f.y))); const px = Math.round(q.x) - 32, py = Math.round(q.y) - 62;
         if (f.out) {
-          const age = simT - f.out.t;
-          if (age > 1.3) return;
-          drawSprite(ctx, f.p.person, 'hurt' + Math.min(5, Math.floor(age * 6)), px, py - Math.sin(Math.min(1, age) * Math.PI) * 60, scale);
-          for (let s = 0; s < 4; s++) { ctx.fillStyle = '#ffd166'; const ang = age * 16 + s * 1.6; ctx.fillRect(px + SPRITE_W * scale / 2 + Math.cos(ang) * 26, py + 14 * scale + Math.sin(ang) * 14, 6, 6); }
+          const age = simT - f.out.t; if (age > 1.3) return;
+          const lift = Math.round(Math.sin(Math.min(1, age) * Math.PI) * 46);
+          drawActor(ctx, f.p.person, 'hurt' + Math.min(5, Math.floor(age * 6)), px, py, LIGHT, { lift });
+          if (stars) ctx.drawImage(stars, (1 + Math.floor(age * 10) % 3) * STARS.w, 0, STARS.w, STARS.h, px + 32 - STARS.w / 2, py - lift - 14, STARS.w, STARS.h);
+          if (hit && age < 0.32) ctx.drawImage(hit, Math.min(3, Math.floor(age / 0.08)) * HIT.w, 0, HIT.w, HIT.h, px + 32 - HIT.w / 2 - f.out.dir * 14, py + 8, HIT.w, HIT.h);
           return;
         }
-        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(px + 18 * scale, py + SPRITE_H * scale - 6 * scale, 28 * scale, 4 * scale);
         let fr;
         if (winner) fr = Math.floor(t * 5) % 2 ? 'cheer' : 'cheer2';
         else if (f.phase === 'attack') fr = (f.dir < 0 ? 'slashl' : 'slash') + Math.min(5, Math.floor(f.phaseT / 0.45 * 6));
         else if (f.phase === 'stagger') fr = 'hurt0';
         else if (Math.hypot(f.vx, f.vy) > 0.05) fr = (f.dir < 0 ? 'left' : 'run') + (Math.floor(simT * 12 + f.ringside * 8) % 8);
         else fr = f.dir < 0 ? 'stand-left' : 'stand-right';
-        if (f.hitFlash > 0 && Math.floor(f.hitFlash * 30) % 2) ctx.globalAlpha = 0.5;
-        drawSprite(ctx, f.p.person, fr, px, py, scale);
-        ctx.globalAlpha = 1;
-        if (f.hitFlash > 0) impactRing(ctx, px + SPRITE_W * scale / 2, py + SPRITE_H * scale * 0.45, 0.25 - f.hitFlash, '#ffd166', 50);
-        if (f.hitFlash > 0.15) { ctx.fillStyle = '#ffd166'; for (let s = 0; s < 3; s++) { const ang = simT * 20 + s * 2.1; ctx.fillRect(px + SPRITE_W * scale / 2 + Math.cos(ang) * 22, py + 10 * scale + Math.sin(ang) * 12, 5, 5); } }
-        // здоровье и имя
-        const bw = 44 * scale / 2;
-        ctx.fillStyle = '#1a1020'; ctx.fillRect(px + SPRITE_W * scale / 2 - bw / 2, py - 8, bw, 5);
-        ctx.fillStyle = f.hp > 0.5 ? '#6ec85a' : f.hp > 0.25 ? '#ffd166' : '#ff6b6b'; ctx.fillRect(px + SPRITE_W * scale / 2 - bw / 2, py - 8, bw * f.hp, 5);
-        label(ctx, f.p.name, px + SPRITE_W * scale / 2, py - 24, scale >= 3 ? 9 : 8, winner ? '#ffd166' : '#f4ecd8', 'rgba(12,8,24,0.85)', winner ? '#ffd166' : null);
+        const hop = winner ? Math.round(Math.abs(Math.sin(t * 6)) * 4) : 0;
+        const shake = f.hitFlash > 0 ? Math.round(Math.sin(f.hitFlash * 90) * 2) : 0;
+        drawActor(ctx, f.p.person, fr, px + shake, py, LIGHT, { lift: hop });
+        if (hit && f.hitFlash > 0) ctx.drawImage(hit, Math.min(3, Math.floor((0.25 - f.hitFlash) / 0.0625)) * HIT.w, 0, HIT.w, HIT.h, px + 32 - HIT.w / 2, py + 10, HIT.w, HIT.h);
+        if (!winner) { ctx.fillStyle = '#05050f'; ctx.fillRect(px + 20, py + 6, 24, 4); ctx.fillStyle = f.hp > 0.5 ? '#6ec85a' : f.hp > 0.25 ? '#ffd166' : '#ff5050'; ctx.fillRect(px + 21, py + 7, Math.max(1, Math.round(22 * f.hp)), 2); }
+        labels.push({ text: f.p.name, cx: px + 32, y: py - hop - 7, index: F.indexOf(f), gold: winner });
       });
-      [0, 1, 2].forEach((i) => { ctx.fillStyle = i === 1 ? 'rgba(255,255,255,0.9)' : 'rgba(229,57,53,0.9)'; ctx.fillRect(ringX - 10, ringY + ringH + 22 + i * 12, ringW + 20, 4); });
-      vignette(ctx, w, h, 0.45);
-      ctx.restore();
-      particles.draw(ctx, t);
-      if (winner) { ctx.fillStyle = 'rgba(255,230,160,0.08)'; ctx.fillRect(0, 0, w, h); if (Math.floor(t * 6) % 3 === 0) particles.burst(w / 2, ringY - 60, t, rnd, { count: 10, speed: 200, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc'], life: 1.3, gravity: 200, size: 4 }); }
+      if (winner) { const wf = F.find((f) => !f.out); if (wf) { const q = floorPos(wf.x, wf.y); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,240,200,0.16)'; ctx.beginPath(); ctx.moveTo(x0 + 314, yOff + 20); ctx.lineTo(x0 + 326, yOff + 20); ctx.lineTo(q.x + 46, q.y + 4); ctx.lineTo(q.x - 46, q.y + 4); ctx.fill(); ctx.restore(); lightPool(ctx, q.x, q.y, 60, 14, '255,235,190', 0.4); } }
 
+      // 5. ПЕРЕДНИЕ КАНАТЫ поверх бойцов, стол судей с гонгом и камеры прессы на переднем плане
+      const ropes = img('ropes'); if (ropes) ctx.drawImage(ropes, x0 + 37, yOff + 22);
+      placeTags(ctx, labels);
+      particles.draw(ctx, t);
+      const fg = img('fg'); if (fg) ctx.drawImage(fg, x0, yOff + 18);
+      const ringing = t < 1.4 || winner, bell = img('bell');
+      if (bell && fg) ctx.drawImage(bell, (ringing ? 1 + Math.floor(t * 12) % 3 : 0) * BELL.w, 0, BELL.w, BELL.h, x0 + 376 - BELL.w / 2, yOff + 288, BELL.w, BELL.h);
+      vignette(ctx, w, h, 0.55);
+      ctx.restore();
+
+      if (t < 1.4) bigText(ctx, w, h, 'FIGHT!', t, Math.floor(t * 8) % 2 ? '#ffd166' : '#ff6b6b', 28);
+      if (simT - lastKo < 0.8 && koCount > 0 && !winner) bigText(ctx, w, h, 'K.O.', t, '#ff5050', 28);
+      if (winner) { bigText(ctx, w, h, 'ЧЕМПИОН!', t, '#ffd166', 24); if (Math.floor(t * 6) % 3 === 0) particles.burst(x0 + 320, yOff + 120, t, rnd, { count: 8, speed: 120, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.4, gravity: 120, size: 2 }); }
+      buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);
     };

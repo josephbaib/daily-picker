@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=edc8964-1702';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=edc8964-1702';
-import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=edc8964-1702';
-import { beginCamera, vignette, bigText } from './fx.js?v=edc8964-1702';
+import { mulberry32 } from '../rng.js?v=85f63d0-1718';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=85f63d0-1718';
+import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=85f63d0-1718';
+import { beginCamera, vignette, bigText } from './fx.js?v=85f63d0-1718';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, карты с сидящими водителями,
 // четыре зоны за сетчатым забором: парковка, коридор, столовая, серверная. Порядок финиша задан заранее, препятствия только для зрелища.

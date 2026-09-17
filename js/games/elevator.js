@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, threatMark, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: этажи плитами друг над другом, кабина и двери с плит, шкив и лампа перегруза с листа.
@@ -36,6 +36,7 @@ export default {
     const rnd = mulberry32(seed);
     const victims = [...order].reverse().slice(0, n - 1);
     const particles = makeParticles();
+    const titles = makeTitles();
     // раунд: едем этаж (drive) → тревога 0.7 → двери 0.4 → выход 0.9 → двери 0.4
     const drive = n > 10 ? 0.6 : 1.0, alarmT = 0.7, openT = 0.4, exitT = 0.9, closeT = 0.4;
     const roundLen = drive + alarmT + openT + exitT + closeT;
@@ -60,8 +61,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const t = warp((now - start) / 1000);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const t = warp(Math.max(0, now - start) / 1000);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;
       const cols = Math.min(6, Math.ceil(Math.sqrt(n * 1.6))), rowsN = Math.ceil(n / cols);
@@ -149,10 +150,10 @@ export default {
       const bld = img('building');
       if (bld) { const bx = w - 138, by = 8; ctx.fillStyle = '#05050f'; ctx.fillRect(bx - 2, by - 2, 132, 76); ctx.drawImage(bld, bx, by); const my = by + 66 - Math.round((travel / Math.max(1, topFloor)) * 58); ctx.fillStyle = '#05050f'; ctx.fillRect(bx + 60, my - 1, 8, 8); ctx.fillStyle = alarm && Math.floor(t * 8) % 2 ? '#ff5050' : '#ffd166'; ctx.fillRect(bx + 61, my, 6, 6); }
       pixLabel(ctx, finale ? 'ПЕРЕГОВОРКА' : `ЭТАЖ ${Math.max(1, Math.min(Math.round(travel) + 1, topFloor))}`, w - 72, 90, '#ffd166', '#ffd166');
-      if (alarm) bigText(ctx, w, h, 'ПЕРЕГРУЗ!', t, '#ff5050', 24);
+      if (alarm) titles.show(ctx, w, h, 'ПЕРЕГРУЗ!', t, 'danger');
       const lastExit = exited.length ? exited[exited.length - 1] : null;
-      if (lastExit && t - lastExit.time < 1.0 && !finale) bigText(ctx, w, h, 'НА ВЫХОД!', t, '#ffd166', 24);
-      if (finale && doors > 0.9) bigText(ctx, w, h, 'ДОЕХАЛ!', t, '#ffd166', 24);
+      if (lastExit && t - lastExit.time < 1.0 && !finale) titles.show(ctx, w, h, 'НА ВЫХОД!', t, 'steel');
+      if (finale && doors > 0.9) titles.show(ctx, w, h, 'ДОЕХАЛ!', t, 'gold');
       buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite, runFrame } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Забег на стадионе на закате: одна дорожка, бегуны в несколько рядов в глубину, камера за лидером.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: небо, город с мачтами, трибуны, дорожка, финишная арка, камеры на переднем плане.
@@ -46,6 +46,7 @@ export default {
       f: 1.1 + rnd() * 1.3, phase: rnd() * Math.PI * 2, amp: 0.07 + rnd() * 0.07, gait: rnd() * 8, lastDust: 0,
     }));
     const particles = makeParticles();
+    const titles = makeTitles();
     const fx = makeFx();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, flashAt = null;
@@ -54,8 +55,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const time = (now - start) / 1000, t = Math.min(1, time / dur);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const time = Math.max(0, now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;
       const ps = runners.map((r) => progress(r, t));
@@ -129,7 +130,7 @@ export default {
       vignette(ctx, w, h, 0.4);
       if (flashAt !== null) { const warm = Math.max(0, 0.35 - (time - flashAt) * 0.7); if (warm > 0) { ctx.fillStyle = `rgba(255,220,160,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
       ctx.restore();
-      if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ФИНИШ!', time, '#ffd166', 24);
+      if (flashAt !== null && time - flashAt < 1.6) titles.show(ctx, w, h, 'ФИНИШ!', time, 'gold');
       if (flashAt === null && leader >= 0.985) { flashAt = time; [-150, 150].forEach((dx) => particles.burst(finX + dx, yOff + 200, time, rnd, { count: 50, speed: 170, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.8, gravity: 120, size: 2 })); }
       buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

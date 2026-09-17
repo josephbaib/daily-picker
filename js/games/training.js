@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -54,6 +54,7 @@ export default {
     const finalAt = acc + 2.6;
     const warp = makeWarp(events.map((e) => e.at), n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
+    const titles = makeTitles();
     const dead = new Map();
     const logs = []; // брёвна после техники замены
     let start = null, raf = 0, stopped = false, fired = 0;
@@ -61,8 +62,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const t = warp((now - start) / 1000);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const t = warp(Math.max(0, now - start) / 1000);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;
       const cols = Math.ceil(Math.sqrt(n * 1.8)), rows = Math.ceil(n / cols);
@@ -145,9 +146,9 @@ export default {
       if (fg) { const sway = Math.round(Math.sin(t * 0.9) * 1.5); ctx.drawImage(fg, 0, 0, 320, 360, sway, yOff, 320, 360); ctx.drawImage(fg, 320, 0, 320, 360, w - 320 - sway, yOff, 320, 360); }
       vignette(ctx, w, h, 0.45);
       const lastLog = logs.length ? logs[logs.length - 1] : null;
-      if (lastLog && t - lastLog.time < 0.9) bigText(ctx, w, h, 'ЗАМЕНА!', t, '#ffd166', 24);
-      else if (fired > 0 && t - events[fired - 1].at < 0.9) bigText(ctx, w, h, 'ПОПАЛ!', t, '#ff6b6b', 24);
-      if (winner) bigText(ctx, w, h, 'ВЫСТОЯЛ!', t, '#ffd166', 24);
+      if (lastLog && t - lastLog.time < 0.9) titles.show(ctx, w, h, 'ЗАМЕНА!', t, 'gold');
+      else if (fired > 0 && t - events[fired - 1].at < 0.9) titles.show(ctx, w, h, 'ПОПАЛ!', t, 'danger');
+      if (winner) titles.show(ctx, w, h, 'ВЫСТОЯЛ!', t, 'gold');
       pixLabel(ctx, `ОСТАЛОСЬ ${alive.length}`, w - 56, 8, '#ffd166', '#ffd166');
       buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }

@@ -97,14 +97,16 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 /* --- игра --- */
 #game { background: #000; z-index: 2; }
 #canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
-#hud { position: absolute; top: 18px; left: 22px; display: flex; gap: 16px; align-items: center; border: 1px solid var(--line); background: rgba(0,0,0,0.55); border-radius: 2px; padding: 8px 16px; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; backdrop-filter: blur(6px); }
+/* Надписи поверх игры лежат в пиксельной сетке буфера: шрифт 8 px, умноженный на масштаб буфера --k, без размытия и скруглений */
+#game { --k: 2; }
+#hud { position: absolute; top: calc(8px * var(--k)); left: calc(8px * var(--k)); display: flex; gap: calc(6px * var(--k)); align-items: center; border: calc(1px * var(--k)) solid #ffd166; background: rgba(8,6,20,0.82); padding: calc(2px * var(--k)) calc(3px * var(--k)); font-family: var(--pixel); font-size: calc(8px * var(--k)); line-height: 1; letter-spacing: 0; text-transform: uppercase; color: #f6f0e0; -webkit-font-smoothing: none; }
 #hud-title { font-weight: 400; }
-#hud-time { color: var(--accent); font-family: var(--pixel); font-size: 12px; letter-spacing: 0; }
-#overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--pixel); font-size: 180px; color: #fff; text-shadow: 0 0 40px var(--glow), 10px 10px 0 rgba(0,0,0,0.6); pointer-events: none; }
+#hud-time { color: #ffd166; }
+#overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--pixel); font-size: calc(8px * var(--k) * 7); color: #fff3b0; text-shadow: calc(3px * var(--k)) calc(3px * var(--k)) 0 #2a1400, calc(-1px * var(--k)) 0 0 #2a1400, 0 calc(-1px * var(--k)) 0 #2a1400, calc(1px * var(--k)) 0 0 #2a1400; background: rgba(0,0,8,0.35); pointer-events: none; -webkit-font-smoothing: none; }
 #overlay[hidden] { display: none; }
 
 /* --- результат --- */
-#result { display: flex; align-items: center; justify-content: center; z-index: 2; }
+#result { display: flex; align-items: center; justify-content: center; z-index: 2; background-size: cover; background-position: center; image-rendering: pixelated; }
 #result[hidden] { display: none; }
 .rconf { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
 .rbox { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 26px; text-align: center; padding: 24px; max-width: 1100px; }
@@ -143,7 +145,7 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
   .game-tiles { gap: 14px; padding: 20px 50px 50px; }
   .gtile { width: 130px; } .cover { width: 130px; height: 184px; } .ctitle { font-size: 16px; }
   .rname { font-size: 40px; }
-  #overlay { font-size: 110px; }
+  /* размер цифр отсчёта теперь считается от масштаба буфера */
 }
 
 /* --- затемнение между экранами --- */

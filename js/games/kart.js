@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=66513dd-1803';
-import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=26561fc-1814';
+import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, карты с сидящими водителями,
 // четыре зоны за сетчатым забором: парковка, коридор, столовая, серверная. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -63,6 +63,7 @@ export default {
       final: LAPS - rank.get(p.id) * (0.12 / n), f: 1 + rnd() * 1.4, phase: rnd() * 6.28, amp: 0.05 + rnd() * 0.05, lastDust: 0,
     }));
     const particles = makeParticles();
+    const titles = makeTitles();
     const fx = makeFx();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, flashAt = null;
@@ -72,8 +73,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const time = (now - start) / 1000, t = Math.min(1, time / dur);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const time = Math.max(0, now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;
       const ps = karts.map((k) => progress(k, t));
@@ -159,7 +160,7 @@ export default {
       ctx.fillStyle = '#9aa3b8'; ctx.fillRect(mx + 3, my, mw - 6, 1); ctx.fillRect(mx + 3, my + mh - 1, mw - 6, 1); ctx.fillRect(mx, my + 3, 1, mh - 6); ctx.fillRect(mx + mw - 1, my + 3, 1, mh - 6); ctx.fillRect(mx + 1, my + 1, 2, 2); ctx.fillRect(mx + mw - 3, my + 1, 2, 2); ctx.fillRect(mx + 1, my + mh - 3, 2, 2); ctx.fillRect(mx + mw - 3, my + mh - 3, 2, 2);
       karts.forEach((k, i) => { const per = 2 * (mw + mh); let d = (ps[i] % 1) * per, px, py; if (d < mw) { px = mx + d; py = my + mh - 1; } else if (d < mw + mh) { px = mx + mw - 1; py = my + mh - 1 - (d - mw); } else if (d < 2 * mw + mh) { px = mx + mw - 1 - (d - mw - mh); py = my; } else { px = mx; py = my + (d - 2 * mw - mh); } ctx.fillStyle = '#05050f'; ctx.fillRect(Math.round(px) - 2, Math.round(py) - 2, 4, 4); ctx.fillStyle = k.color; ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3); });
 
-      if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ФИНИШ!', time, '#ffd166', 24);
+      if (flashAt !== null && time - flashAt < 1.6) titles.show(ctx, w, h, 'ФИНИШ!', time, 'gold');
       if (flashAt === null && leader >= LAPS - 0.01) { flashAt = time; [-150, 150].forEach((dx) => particles.burst(finX + dx, yOff + 210, time, rnd, { count: 50, speed: 170, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.8, gravity: 120, size: 2 })); }
       buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

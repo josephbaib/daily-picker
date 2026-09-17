@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, lightPool } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, lightPool } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
@@ -47,6 +47,7 @@ export default {
     const finalAt = acc + 2.6;
     const warp = makeWarp([...koAt.values()], n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
+    const titles = makeTitles();
 
     // состояние бойцов в нормированных координатах ринга (0..1)
     const F = participants.map((p, i) => ({
@@ -120,8 +121,8 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       const hit = img('hit'), stars = img('stars');
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const t = warp((now - start) / 1000);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const t = warp(Math.max(0, now - start) / 1000);
       while (simT + STEP <= t) step(STEP);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;
@@ -187,9 +188,9 @@ export default {
       vignette(ctx, w, h, 0.55);
       ctx.restore();
 
-      if (t < 1.4) bigText(ctx, w, h, 'FIGHT!', t, Math.floor(t * 8) % 2 ? '#ffd166' : '#ff6b6b', 28);
-      if (simT - lastKo < 0.8 && koCount > 0 && !winner) bigText(ctx, w, h, 'K.O.', t, '#ff5050', 28);
-      if (winner) { bigText(ctx, w, h, 'ЧЕМПИОН!', t, '#ffd166', 24); if (Math.floor(t * 6) % 3 === 0) particles.burst(x0 + 320, yOff + 120, t, rnd, { count: 8, speed: 120, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.4, gravity: 120, size: 2 }); }
+      if (t < 1.4) titles.show(ctx, w, h, 'FIGHT!', t, 'gold');
+      if (simT - lastKo < 0.8 && koCount > 0 && !winner) titles.show(ctx, w, h, 'K.O.', t, 'danger');
+      if (winner) { titles.show(ctx, w, h, 'ЧЕМПИОН!', t, 'gold'); if (Math.floor(t * 6) % 3 === 0) particles.burst(x0 + 320, yOff + 120, t, rnd, { count: 8, speed: 120, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.4, gravity: 120, size: 2 }); }
       buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

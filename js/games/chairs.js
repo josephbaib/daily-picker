@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=66513dd-1803';
-import { litSprite, placeTags, makeFx, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=26561fc-1814';
+import { litSprite, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Гонки на офисных стульях по коридору до переговорки.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: город за панорамными окнами, опенспейс за стеклянным ограждением,
@@ -48,6 +48,7 @@ export default {
     /* стопки бумаг в коридоре: первая пара кресел в ряду разносит их */
     const stacks = Array.from({ length: 6 }, (_, k) => ({ x: START_X + 260 + k * 250 + Math.round(rnd() * 60), row: k % rows, hitAt: null }));
     const particles = makeParticles();
+    const titles = makeTitles();
     const fx = makeFx();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, doorOpened = null;
@@ -56,8 +57,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const time = (now - start) / 1000, t = Math.min(1, time / dur);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const time = Math.max(0, now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;
       const ps = riders.map((r) => progress(r, t));
@@ -135,7 +136,7 @@ export default {
       if (fg) drawTiled(ctx, fg, 130 + camX * (1840 / camMax), yOff + FG_Y, w);
       vignette(ctx, w, h, 0.28);
       ctx.restore();
-      if (doorOpened !== null && time - doorOpened < 1.6) bigText(ctx, w, h, 'ПЕРЕГОВОРКА!', time, '#8fe0a0', 22);
+      if (doorOpened !== null && time - doorOpened < 1.6) titles.show(ctx, w, h, 'ПЕРЕГОВОРКА!', time, 'green');
       if (doorOpened === null && leader >= 0.975) { doorOpened = time; if (onEvent) onEvent('pop'); particles.burst(finX - 40, yOff + 200, time, rnd, { count: 40, speed: 150, colors: ['#ffffff', '#f0f0f0', '#dfe6f2', '#21a038'], life: 1.8, gravity: 90, size: 3 }); }
       buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

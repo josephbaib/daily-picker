@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -52,6 +52,7 @@ export default {
       slipAt: rnd() < 0.5 ? 0.2 + rnd() * 0.5 : null,
     }));
     const particles = makeParticles();
+    const titles = makeTitles();
     const fx = makeFx();
     const beltCv = document.createElement('canvas'); // рабочий холст для поясов облаков
     const dur = this.duration;
@@ -62,8 +63,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const time = (now - start) / 1000, t = Math.min(1, time / dur);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const time = Math.max(0, now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2);                     // плиты по центру; на широком окне по бокам зеркальные копии
       const ps = climbers.map((c) => progress(c, t));
@@ -188,11 +189,11 @@ export default {
 
       // высотомер и крупные надписи
       pixLabel(ctx, `${Math.round(BASE_ALT + leader * (TOP_ALT - BASE_ALT))} м`, w - 40, 8, '#ffd166', '#ffd166');
-      if (crackAge >= 0 && crackAge < 1.2) bigText(ctx, w, h, 'ТРЕЩИНА!', time, '#7fb6ff', 22);
-      if (avalanche >= 0 && avalanche < 1.3) bigText(ctx, w, h, 'ЛАВИНА!', time, '#ff6b6b', 24);
-      if (storm && stormAge < 1.2) bigText(ctx, w, h, 'БУРАН!', time, '#dfe8ff', 24);
+      if (crackAge >= 0 && crackAge < 1.2) titles.show(ctx, w, h, 'ТРЕЩИНА!', time, 'ice');
+      if (avalanche >= 0 && avalanche < 1.3) titles.show(ctx, w, h, 'ЛАВИНА!', time, 'snow');
+      if (storm && stormAge < 1.2) titles.show(ctx, w, h, 'БУРАН!', time, 'snow');
       if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(x0 + 345, sy(70), time, rnd, { count: 70, speed: 140, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6, gravity: 150, size: 3 }); }
-      if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ВЕРШИНА!', time, '#ffd166', 24);
+      if (flashAt !== null && time - flashAt < 1.6) titles.show(ctx, w, h, 'ВЕРШИНА!', time, 'summit');
       buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

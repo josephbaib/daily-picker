@@ -1,12 +1,12 @@
-import { personFor, preload, spriteCanvas } from './sprite.js?v=66513dd-1803';
-import { computeOrder } from './order.js?v=66513dd-1803';
-import { randomSeed } from './rng.js?v=66513dd-1803';
-import { GAMES, gameById, pickGame } from './games/index.js?v=66513dd-1803';
-import { sound } from './sound.js?v=66513dd-1803';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=66513dd-1803';
-import { mountResult } from './ui/result.js?v=66513dd-1803';
-import * as db from './db.js?v=66513dd-1803';
-import { NPCS, loadImage, plate } from './games/scene.js?v=66513dd-1803';
+import { personFor, preload, spriteCanvas } from './sprite.js?v=26561fc-1814';
+import { computeOrder } from './order.js?v=26561fc-1814';
+import { randomSeed } from './rng.js?v=26561fc-1814';
+import { GAMES, gameById, pickGame } from './games/index.js?v=26561fc-1814';
+import { sound } from './sound.js?v=26561fc-1814';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=26561fc-1814';
+import { mountResult } from './ui/result.js?v=26561fc-1814';
+import * as db from './db.js?v=26561fc-1814';
+import { NPCS, loadImage, plate } from './games/scene.js?v=26561fc-1814';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -194,7 +194,9 @@ async function boot() {
   function setState(s) { state = s; updateStart(); }
 
   // ---------- Холст ----------
-  const fit = () => { const g = $('#game'); if (g.hidden) return; canvas.width = g.clientWidth || innerWidth || 1280; canvas.height = g.clientHeight || innerHeight || 720; };
+  const fit = () => { const g = $('#game'); if (g.hidden) return; canvas.width = g.clientWidth || innerWidth || 1280; canvas.height = g.clientHeight || innerHeight || 720;
+    /* масштаб пиксельного буфера игр (тот же расчёт, что в makeBuffer): надписи интерфейса поверх игры рисуются в той же сетке */
+    const hh = canvas.height, kk = hh >= 700 ? Math.max(1, Math.round((hh / 360) * 2) / 2) : Math.max(0.5, hh / 360); g.style.setProperty('--k', String(kk)); };
   new ResizeObserver(fit).observe($('#game'));
 
   // ---------- Старт ----------
@@ -238,30 +240,31 @@ async function boot() {
     await preload(ordered.map((p) => p.person));
     await loadGameAssets(game, (k) => loadingScreen.progress(k));
     loadingScreen.hide();
-    await countdown(payload.startAt, true);
-    setState('playing');
-    sound.go();
-    // Общее время игры привязано к моменту старта из рассылки: кто догрузился позже, попадает в то же место действия, что и остальные.
+    // Общее время игры привязано к моменту старта из рассылки. Игра запускается сразу после загрузки и до старта стоит на первом кадре:
+    // отсчёт идёт поверх сцены, а не поверх чёрного экрана. Кто догрузился позже, попадает в то же место действия, что и остальные.
     const startAtPerf = performance.now() + (payload.startAt - db.serverNow());
-    const started = Math.min(performance.now(), startAtPerf);
-    const timer = setInterval(() => { $('#hud-time').textContent = ((performance.now() - started) / 1000).toFixed(1); }, 100);
-    // Страховка: если игра зависла или упала, всё равно показываем итог.
-    let frozen = false;
-    const watchdog = setTimeout(() => { if (!frozen) { console.warn('игра не завершилась вовремя'); if (running) running.stop(); freeze(); } }, (game.duration + 8) * 1000);
+    let frozen = false, watchdog = 0, timer = 0;
     const freeze = async () => {
-      if (frozen) return; frozen = true; clearTimeout(watchdog);
-        clearInterval(timer);
-        setState('frozen');
-        await new Promise((r) => setTimeout(r, 900));
-        sound.fanfare();
-        setState('reveal');
-        await fadeTo(() => { show('result'); result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : ''); });
+      if (frozen) return; frozen = true; clearTimeout(watchdog); clearInterval(timer);
+      setState('frozen');
+      let snap = ''; try { snap = canvas.toDataURL('image/jpeg', 0.85); } catch (e) { snap = ''; }
+      await new Promise((r) => setTimeout(r, 900));
+      sound.fanfare();
+      setState('reveal');
+      await fadeTo(() => { const res = $('#result'); res.style.backgroundImage = snap ? `linear-gradient(rgba(0,0,8,0.82), rgba(0,0,8,0.9)), url(${snap})` : ''; show('result'); result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : ''); });
     };
     running = game.play({
       canvas, participants: ordered, order: payload.orderIds, seed: payload.seed, startAt: startAtPerf,
       onEvent: (ev) => { if (ev === 'pop') sound.pop(); if (ev === 'tick') sound.tick(); if (ev === 'ding') sound.ding(); if (ev === 'whoosh') sound.whoosh(); },
       onFreeze: freeze,
     });
+    await countdown(payload.startAt, true);
+    setState('playing');
+    sound.go();
+    const started = Math.min(performance.now(), startAtPerf);
+    timer = setInterval(() => { $('#hud-time').textContent = ((performance.now() - started) / 1000).toFixed(1); }, 100);
+    // Страховка: если игра зависла или упала, всё равно показываем итог.
+    watchdog = setTimeout(() => { if (!frozen) { console.warn('игра не завершилась вовремя'); if (running) running.stop(); freeze(); } }, (game.duration + 8) * 1000);
   }
 
   function countdown(untilMs, useServer) {

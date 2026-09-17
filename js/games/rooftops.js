@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite, runFrame } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
@@ -60,6 +60,7 @@ export default {
       slipAt: rnd() < 0.5 ? 0.25 + rnd() * 0.5 : null, // у половины будет «чуть не сорвался»
     }));
     const particles = makeParticles();
+    const titles = makeTitles();
     const fx = makeFx();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, lastPuff = 0, flashAt = null;
@@ -70,8 +71,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const time = (now - start) / 1000, t = Math.min(1, time / dur);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const time = Math.max(0, now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;                                    // плиты прижаты к низу кадра, лишняя высота уходит в небо
       const ps = runners.map((r) => progress(r, t));
@@ -190,7 +191,7 @@ export default {
       vignette(ctx, w, h, 0.5);
       if (flashAt !== null) { const warm = Math.max(0, 0.3 - (time - flashAt) * 0.6); if (warm > 0) { ctx.fillStyle = `rgba(255,170,80,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
       ctx.restore();
-      if (flashAt !== null && time - flashAt < 1.6) bigText(ctx, w, h, 'ХОКАГЕ!', time, '#ff6b6b', 24);
+      if (flashAt !== null && time - flashAt < 1.6) titles.show(ctx, w, h, 'ХОКАГЕ!', time, 'lacquer');
       if (flashAt === null && leader >= 0.985) { flashAt = time; particles.burst(FINISH_X - camX, yOff + 150, time, rnd, { count: 70, speed: 140, colors: ['#ffd166', '#ff6b6b', '#6ec85a', '#3c8cdc', '#fff'], life: 1.6, gravity: 150, size: 3 }); }
       buffer.blit();
       if (t >= 1 && time >= dur + 0.8) { stopped = true; onFreeze(); return; }

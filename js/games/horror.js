@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=66513dd-1803';
-import { mulberry32 } from '../rng.js?v=66513dd-1803';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=66513dd-1803';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=66513dd-1803';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
+import { drawSprite } from '../sprite.js?v=26561fc-1814';
+import { mulberry32 } from '../rng.js?v=26561fc-1814';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=26561fc-1814';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: зал и его версия во вспышке молнии плитами, призрак, руки, свеча и чудовище с листа.
@@ -50,6 +50,7 @@ export default {
     const finalAt = acc + 2.6;
     const warp = makeWarp(events.map((e) => e.at), n > 10 ? 0.2 : 0.35, 0.4);
     const particles = makeParticles();
+    const titles = makeTitles();
     const dead = new Map(); // id -> {time, kind, x, y}
     let start = null, raf = 0, stopped = false, fired = 0, lastFlash = -10;
     const jitter = participants.map(() => rnd() * 6.28);
@@ -57,8 +58,8 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
-      const t = warp((now - start) / 1000);
+      if (start === null) start = typeof startAt === 'number' ? startAt : now;
+      const t = warp(Math.max(0, now - start) / 1000);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;
       const cols = Math.ceil(Math.sqrt(n * 1.8)), rows = Math.ceil(n / cols);
@@ -147,8 +148,8 @@ export default {
       const fg = img('fg');
       if (fg && !blackout) { ctx.drawImage(fg, 0, 0, 320, 360, 0, yOff, 320, 360); ctx.drawImage(fg, 320, 0, 320, 360, w - 320, yOff, 320, 360); glow(ctx, w - 640 + 610, yOff + 290, 40, '255,160,70', 0.4 * flick(77)); }
       vignette(ctx, w, h, 0.7);
-      if (fired > 0 && t - events[fired - 1].at < 1.0 && !winner) bigText(ctx, w, h, ['УТАЩИЛИ!', 'ПРИЗРАК!', 'ЛЮСТРА!', 'ТЕМНОТА!', 'МОНСТР!'][KINDS.indexOf(events[fired - 1].kind)] || 'ПРОПАЛ!', t, '#ff5050', 24);
-      if (winner) bigText(ctx, w, h, 'ВЫЖИЛ!', t, '#ffd166', 24);
+      if (fired > 0 && t - events[fired - 1].at < 1.0 && !winner) titles.show(ctx, w, h, ['УТАЩИЛИ!', 'ПРИЗРАК!', 'ЛЮСТРА!', 'ТЕМНОТА!', 'МОНСТР!'][KINDS.indexOf(events[fired - 1].kind)] || 'ПРОПАЛ!', t, 'blood');
+      if (winner) titles.show(ctx, w, h, 'ВЫЖИЛ!', t, 'gold');
       buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

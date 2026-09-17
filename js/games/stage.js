@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=66513dd-1803';
+import { spriteCanvas } from '../sprite.js?v=26561fc-1814';
 
 const LIT = new WeakMap();
 let work = null;
@@ -91,7 +91,7 @@ export function placeTags(ctx, items) {
 }
 
 // ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
-import { plate } from './scene.js?v=66513dd-1803';
+import { plate } from './scene.js?v=26561fc-1814';
 export const FX_ASSET = 'assets/fx/fx.png';
 const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
 const FX_W = 96, FX_H = 48;
@@ -132,4 +132,63 @@ export function threatMark(ctx, cx, top, t, color = '#ff5050') {
   ctx.fillStyle = c;
   [[-r, 0, 6, 2], [-r, 0, 2, 6], [r - 5, 0, 6, 2], [r - 1, 0, 2, 6], [-r, 2 * r - 2, 6, 2], [-r, 2 * r - 6, 2, 6], [r - 5, 2 * r - 2, 6, 2], [r - 1, 2 * r - 6, 2, 6]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
   for (let k = 0; k < 5; k++) { ctx.fillStyle = '#05050f'; ctx.fillRect(x - 5 + k - 1, y - 16 + bob + k - 1, 11 - k * 2 + 2, 3); ctx.fillStyle = c; ctx.fillRect(x - 5 + k, y - 16 + bob + k, 11 - k * 2, 1); }
+}
+
+// ---------- Надписи событий в материале сцены ----------
+// Буквы рисуются в родном размере шрифта (8 px), красятся в два тона с обводкой и увеличиваются в целое число раз,
+// поэтому лежат в той же пиксельной сетке, что и сцена. Материал: золото, лак, лёд, снег, кровь и так далее.
+const TITLE_STYLES = {
+  gold: { fill: ['#fff3b0', '#f2b53a'], edge: '#ffffff', outline: '#2a1400', glow: '255,200,80' },
+  danger: { fill: ['#ffb0a0', '#e0322a'], edge: '#ffe0d8', outline: '#2a0505', glow: '255,60,40' },
+  lacquer: { fill: ['#ff9a6a', '#c8261e'], edge: '#ffd9b0', outline: '#1a0508', glow: '255,120,40' },
+  ice: { fill: ['#f4fbff', '#6aa6f0'], edge: '#ffffff', outline: '#0f2466', glow: '140,190,255', cap: '#ffffff' },
+  snow: { fill: ['#ffffff', '#b9cbe8'], edge: '#ffffff', outline: '#23305a', glow: '220,235,255', cap: '#ffffff' },
+  summit: { fill: ['#fff3b0', '#f2b53a'], edge: '#ffffff', outline: '#2a1400', glow: '255,210,120', cap: '#ffffff' },
+  green: { fill: ['#d6ffe0', '#21a038'], edge: '#ffffff', outline: '#04220c', glow: '60,220,110' },
+  steel: { fill: ['#eef6ff', '#6f8fb8'], edge: '#ffffff', outline: '#0a1428', glow: '150,190,255' },
+  blood: { fill: ['#ff7a6a', '#8a0e0e'], edge: '#ffc0b0', outline: '#120202', glow: '200,20,20', drip: true },
+};
+const TITLE_CACHE = new Map();
+function renderTitle(text, styleName) {
+  const key = styleName + '|' + text; if (TITLE_CACHE.has(key)) return TITLE_CACHE.get(key);
+  const st = TITLE_STYLES[styleName] || TITLE_STYLES.gold, font = "8px 'Press Start 2P', monospace";
+  const probe = document.createElement('canvas').getContext('2d'); probe.font = font;
+  const tw = Math.ceil(probe.measureText(text).width), W = tw + 6, H = 18;
+  const glyph = document.createElement('canvas'); glyph.width = W; glyph.height = H; const g = glyph.getContext('2d');
+  g.font = font; g.textBaseline = 'top'; g.fillStyle = '#fff'; g.fillText(text, 3, 3);
+  const id = g.getImageData(0, 0, W, H), d = id.data; /* жёсткая альфа: буквы без сглаживания */
+  for (let i = 3; i < d.length; i += 4) d[i] = d[i] > 110 ? 255 : 0;
+  if (st.drip) for (let x = 0; x < W; x++) { const hsh = Math.sin(x * 12.9898 + text.length * 78.233) * 43758.5453, r = hsh - Math.floor(hsh); if (r < 0.72 || !d[((10) * W + x) * 4 + 3]) continue; const len = 1 + Math.floor(r * 10) % 4; for (let y = 11; y < 11 + len && y < H; y++) { const o = (y * W + x) * 4; d[o] = 255; d[o + 1] = 255; d[o + 2] = 255; d[o + 3] = 255; } }
+  g.putImageData(id, 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = st.fill[0]; g.fillRect(0, 0, W, 7); g.fillStyle = st.fill[1]; g.fillRect(0, 7, W, H);
+  g.fillStyle = st.edge; g.fillRect(0, 3, W, 1);
+  if (st.cap) { g.fillStyle = st.cap; g.fillRect(0, 3, W, 2); }
+  const sil = document.createElement('canvas'); sil.width = W; sil.height = H; const s = sil.getContext('2d');
+  s.drawImage(glyph, 0, 0); s.globalCompositeOperation = 'source-in'; s.fillStyle = st.outline; s.fillRect(0, 0, W, H);
+  const out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
+  [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, 2], [1, 2], [-1, 2]].forEach(([dx, dy]) => o.drawImage(sil, dx, dy));
+  o.drawImage(glyph, 0, 0);
+  out.titleStyle = st;
+  if (document.fonts && document.fonts.check(font)) TITLE_CACHE.set(key, out);
+  return out;
+}
+// Надписи одной игры: помнят, когда надпись появилась, чтобы сыграть удар при появлении. show() вызывается каждый кадр, пока надпись нужна.
+export function makeTitles() {
+  const seen = new Map();
+  return {
+    show(ctx, w, h, text, t, styleName = 'gold') {
+      let rec = seen.get(text); if (!rec || t - rec.last > 0.4) { rec = { first: t, last: t }; seen.set(text, rec); } rec.last = t;
+      const age = t - rec.first, img = renderTitle(text, styleName), st = img.titleStyle;
+      const base = Math.max(1, Math.min(3, Math.floor((w * 0.86) / img.width))), scale = age < 0.07 ? base + 1 : base;
+      const dw = img.width * scale, dh = img.height * scale;
+      const shake = age < 0.3 ? Math.round(Math.sin(age * 90) * (1 - age / 0.3) * 3) : 0;
+      const x = Math.round((w - dw) / 2) + shake, y = Math.round(h * 0.3 - dh / 2);
+      ctx.save(); ctx.imageSmoothingEnabled = false;
+      ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(w / 2, y + dh / 2, 0, w / 2, y + dh / 2, dw * 0.6); gl.addColorStop(0, `rgba(${st.glow},${age < 0.15 ? 0.4 : 0.22})`); gl.addColorStop(1, `rgba(${st.glow},0)`); ctx.fillStyle = gl; ctx.fillRect(x - dw * 0.2, y - dh, dw * 1.4, dh * 3);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 0.45; ctx.fillStyle = '#05050f'; ctx.fillRect(x + scale * 3, y + dh - scale * 2, dw - scale * 6, scale); ctx.globalAlpha = 1;
+      ctx.drawImage(img, x, y, dw, dh);
+      ctx.restore();
+    },
+  };
 }

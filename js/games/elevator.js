@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=b144995-1824';
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=b144995-1824';
-import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { drawSprite } from '../sprite.js?v=83b88d3-1828';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=83b88d3-1828';
+import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles, signBoard, bezel } from './stage.js?v=83b88d3-1828';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: этажи плитами друг над другом, кабина и двери с плит, шкив и лампа перегруза с листа.
@@ -151,8 +151,8 @@ export default {
 
       // 5. СХЕМА ЗДАНИЯ в углу: где сейчас кабина, и номер этажа
       const bld = img('building');
-      if (bld) { const bx = w - 138, by = 8; ctx.fillStyle = '#05050f'; ctx.fillRect(bx - 2, by - 2, 132, 76); ctx.drawImage(bld, bx, by); const my = by + 66 - Math.round((travel / Math.max(1, topFloor)) * 58); ctx.fillStyle = '#05050f'; ctx.fillRect(bx + 60, my - 1, 8, 8); ctx.fillStyle = alarm && Math.floor(t * 8) % 2 ? '#ff5050' : '#ffd166'; ctx.fillRect(bx + 61, my, 6, 6); }
-      pixLabel(ctx, finale ? 'ПЕРЕГОВОРКА' : `ЭТАЖ ${Math.max(1, Math.min(Math.round(travel) + 1, topFloor))}`, w - 72, 90, '#ffd166', '#ffd166');
+      if (bld) { const bx = w - 138, by = 8; bezel(ctx, bx, by, 128, 72); ctx.drawImage(bld, bx, by); const my = by + 66 - Math.round((travel / Math.max(1, topFloor)) * 58); ctx.fillStyle = '#05050f'; ctx.fillRect(bx + 60, my - 1, 8, 8); ctx.fillStyle = alarm && Math.floor(t * 8) % 2 ? '#ff5050' : '#ffd166'; ctx.fillRect(bx + 61, my, 6, 6); }
+      signBoard(ctx, finale ? 'ПЕРЕГОВОРКА' : `ЭТАЖ ${Math.max(1, Math.min(Math.round(travel) + 1, topFloor))}`, w - 10, 90, 'led'); /* табло этажа под схемой здания */
       if (alarm) titles.show(ctx, w, h, 'ПЕРЕГРУЗ!', t, 'danger');
       const lastExit = exited.length ? exited[exited.length - 1] : null;
       if (lastExit && t - lastExit.time < 1.0 && !finale) titles.show(ctx, w, h, 'НА ВЫХОД!', t, 'steel');

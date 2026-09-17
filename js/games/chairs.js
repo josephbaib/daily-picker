@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=b144995-1824';
-import { litSprite, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=83b88d3-1828';
+import { litSprite, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=83b88d3-1828';
+import { beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Гонки на офисных стульях по коридору до переговорки.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: город за панорамными окнами, опенспейс за стеклянным ограждением,

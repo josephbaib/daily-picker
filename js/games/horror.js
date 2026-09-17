@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=b144995-1824';
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=b144995-1824';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { drawSprite } from '../sprite.js?v=83b88d3-1828';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=83b88d3-1828';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=83b88d3-1828';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: зал и его версия во вспышке молнии плитами, призрак, руки, свеча и чудовище с листа.

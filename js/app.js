@@ -1,12 +1,12 @@
-import { personFor, preload, spriteCanvas } from './sprite.js?v=b144995-1824';
-import { computeOrder } from './order.js?v=b144995-1824';
-import { randomSeed } from './rng.js?v=b144995-1824';
-import { GAMES, gameById, pickGame } from './games/index.js?v=b144995-1824';
-import { sound } from './sound.js?v=b144995-1824';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=b144995-1824';
-import { mountResult } from './ui/result.js?v=b144995-1824';
-import * as db from './db.js?v=b144995-1824';
-import { NPCS, loadImage, plate, drawTiled } from './games/scene.js?v=b144995-1824';
+import { personFor, preload, spriteCanvas } from './sprite.js?v=83b88d3-1828';
+import { computeOrder } from './order.js?v=83b88d3-1828';
+import { randomSeed } from './rng.js?v=83b88d3-1828';
+import { GAMES, gameById, pickGame } from './games/index.js?v=83b88d3-1828';
+import { sound } from './sound.js?v=83b88d3-1828';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=83b88d3-1828';
+import { mountResult } from './ui/result.js?v=83b88d3-1828';
+import * as db from './db.js?v=83b88d3-1828';
+import { NPCS, loadImage, plate, drawTiled } from './games/scene.js?v=83b88d3-1828';
 
 const hubWorld = { id: null }; // какая игра выбрана в меню: её мир показывается за полкой
 

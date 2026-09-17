@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=b144995-1824';
-import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=83b88d3-1828';
+import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles, signBoard, bezel } from './stage.js?v=83b88d3-1828';
+import { beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, карты с сидящими водителями,
 // четыре зоны за сетчатым забором: парковка, коридор, столовая, серверная. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -157,8 +157,8 @@ export default {
       ctx.restore();
 
       // показания: круг и схема кольца с точками участников
-      pixLabel(ctx, `КРУГ ${lapNow}/${LAPS}`, w - 46, 8, '#ffd166', '#ffd166');
-      const mx = 10, my = h - 34, mw = 76, mh = 22; ctx.fillStyle = 'rgba(6,6,20,0.55)'; ctx.fillRect(mx - 4, my - 4, mw + 8, mh + 8);
+      signBoard(ctx, `КРУГ ${lapNow}/${LAPS}`, w - 10, 10, 'led'); /* табло круга */
+      const mx = 10, my = h - 34, mw = 76, mh = 22; bezel(ctx, mx - 4, my - 4, mw + 8, mh + 8);
       ctx.fillStyle = '#9aa3b8'; ctx.fillRect(mx + 3, my, mw - 6, 1); ctx.fillRect(mx + 3, my + mh - 1, mw - 6, 1); ctx.fillRect(mx, my + 3, 1, mh - 6); ctx.fillRect(mx + mw - 1, my + 3, 1, mh - 6); ctx.fillRect(mx + 1, my + 1, 2, 2); ctx.fillRect(mx + mw - 3, my + 1, 2, 2); ctx.fillRect(mx + 1, my + mh - 3, 2, 2); ctx.fillRect(mx + mw - 3, my + mh - 3, 2, 2);
       karts.forEach((k, i) => { const per = 2 * (mw + mh); let d = (ps[i] % 1) * per, px, py; if (d < mw) { px = mx + d; py = my + mh - 1; } else if (d < mw + mh) { px = mx + mw - 1; py = my + mh - 1 - (d - mw); } else if (d < 2 * mw + mh) { px = mx + mw - 1 - (d - mw - mh); py = my; } else { px = mx; py = my + (d - 2 * mw - mh); } ctx.fillStyle = '#05050f'; ctx.fillRect(Math.round(px) - 2, Math.round(py) - 2, 4, 4); ctx.fillStyle = k.color; ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3); });
 

@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=b144995-1824';
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=b144995-1824';
-import { drawActor, placeTags, makeFx, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { drawSprite } from '../sprite.js?v=83b88d3-1828';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=83b88d3-1828';
+import { drawActor, placeTags, makeFx, FX_ASSET, makeTitles, signBoard } from './stage.js?v=83b88d3-1828';
+import { beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -190,7 +190,7 @@ export default {
       if (flashAt !== null) { const warm = Math.max(0, 0.35 - (time - flashAt) * 0.7); if (warm > 0) { ctx.fillStyle = `rgba(255,210,140,${warm.toFixed(2)})`; ctx.fillRect(0, 0, w, h); } }
 
       // высотомер и крупные надписи
-      pixLabel(ctx, `${Math.round(BASE_ALT + leader * (TOP_ALT - BASE_ALT))} м`, w - 40, 8, '#ffd166', '#ffd166');
+      signBoard(ctx, `${Math.round(BASE_ALT + leader * (TOP_ALT - BASE_ALT))} м`, w - 10, 6, 'wood'); /* высотомер: деревянная табличка на верёвках под снегом */
       if (crackAge >= 0 && crackAge < 1.2) titles.show(ctx, w, h, 'ТРЕЩИНА!', time, 'ice');
       if (avalanche >= 0 && avalanche < 1.3) titles.show(ctx, w, h, 'ЛАВИНА!', time, 'snow');
       if (storm && stormAge < 1.2) titles.show(ctx, w, h, 'БУРАН!', time, 'snow');

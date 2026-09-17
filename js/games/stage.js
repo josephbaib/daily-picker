@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=b144995-1824';
+import { spriteCanvas } from '../sprite.js?v=83b88d3-1828';
 
 const LIT = new WeakMap();
 let work = null;
@@ -91,7 +91,7 @@ export function placeTags(ctx, items) {
 }
 
 // ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
-import { plate } from './scene.js?v=b144995-1824';
+import { plate } from './scene.js?v=83b88d3-1828';
 export const FX_ASSET = 'assets/fx/fx.png';
 const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
 const FX_W = 96, FX_H = 48;
@@ -204,4 +204,43 @@ export function makeTitles() {
       ctx.restore();
     },
   };
+}
+
+// ---------- Показания как предметы мира ----------
+// Табличка прижата правым верхним углом к точке (xRight, yTop). Материал выбирается под сцену:
+// 'wood' — деревянная табличка на верёвках под снежной шапкой, 'scroll' — свиток на деревянных валиках с красной печатью,
+// 'led' — тёмное табло в стальной рамке с янтарными цифрами. Текст в родном размере пиксельного шрифта.
+export function bezel(ctx, x, y, w, h) { // стальная рамка в три тона вокруг прибора
+  ctx.fillStyle = '#0a0c14'; ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  ctx.fillStyle = '#3a4156'; ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+  ctx.fillStyle = '#6a7490'; ctx.fillRect(x - 2, y - 2, w + 4, 1); ctx.fillRect(x - 2, y - 2, 1, h + 4);
+  ctx.fillStyle = '#1c2030'; ctx.fillRect(x - 2, y + h + 1, w + 4, 1); ctx.fillRect(x + w + 1, y - 2, 1, h + 4);
+  ctx.fillStyle = '#0d0f18'; ctx.fillRect(x, y, w, h);
+}
+export function signBoard(ctx, text, xRight, yTop, kind = 'led') {
+  ctx.font = "8px 'Press Start 2P', monospace"; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  const tw = Math.ceil(ctx.measureText(text).width), w = tw + 10, h = 14, x = Math.round(xRight - w), y = Math.round(yTop);
+  if (kind === 'wood') {
+    const py = y + 8; /* верёвки от верхнего края кадра, доска, волокна, гвозди, снег сверху */
+    ctx.fillStyle = '#5a4a36'; ctx.fillRect(x + 4, 0, 1, py); ctx.fillRect(x + w - 5, 0, 1, py); ctx.fillStyle = '#c8b08a'; ctx.fillRect(x + 4, 0, 1, py - 1); ctx.fillRect(x + w - 5, 0, 1, py - 1);
+    ctx.fillStyle = '#2a1606'; ctx.fillRect(x - 1, py - 1, w + 2, h + 2);
+    ctx.fillStyle = '#8a5a2e'; ctx.fillRect(x, py, w, h); ctx.fillStyle = '#b07a44'; ctx.fillRect(x, py, w, 2); ctx.fillStyle = '#5a3616'; ctx.fillRect(x, py + h - 2, w, 2);
+    ctx.fillStyle = '#74481f'; for (let gx = x + 3; gx < x + w - 6; gx += 11) ctx.fillRect(gx, py + 4 + ((gx * 7) % 5), 6, 1);
+    ctx.fillStyle = '#1a0e04'; [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3]].forEach(([dx, dy]) => ctx.fillRect(x + dx, py + dy, 1, 1));
+    ctx.fillStyle = '#c6d6ee'; ctx.fillRect(x - 1, py - 2, w + 2, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 2, py - 4, w + 4, 3); for (let sx = x + 2; sx < x + w - 2; sx += 7) ctx.fillRect(sx, py - 5 - ((sx * 3) % 2), 4, 2); ctx.fillRect(x + 5, py - 1, 2, 3); ctx.fillRect(x + w - 9, py - 1, 3, 2);
+    ctx.fillStyle = '#d9a868'; ctx.fillText(text, x + 5, py + 4); ctx.fillStyle = '#2a1606'; ctx.fillText(text, x + 5, py + 3);
+    return;
+  }
+  if (kind === 'scroll') {
+    ctx.fillStyle = '#2a1a0c'; ctx.fillRect(x - 5, y - 1, w + 10, h + 2);
+    ctx.fillStyle = '#e8d8a8'; ctx.fillRect(x, y, w, h); ctx.fillStyle = '#f6ecc8'; ctx.fillRect(x, y, w, 2); ctx.fillStyle = '#c9b070'; ctx.fillRect(x, y + h - 2, w, 2); ctx.fillStyle = '#d8c48c'; ctx.fillRect(x, y + 2, 2, h - 4); ctx.fillRect(x + w - 2, y + 2, 2, h - 4);
+    [x - 4, x + w].forEach((rx) => { ctx.fillStyle = '#6a3a1a'; ctx.fillRect(rx, y - 3, 4, h + 6); ctx.fillStyle = '#9a5a2a'; ctx.fillRect(rx, y - 3, 1, h + 6); ctx.fillStyle = '#3a1e0c'; ctx.fillRect(rx, y - 4, 4, 2); ctx.fillRect(rx, y + h + 2, 4, 2); });
+    ctx.fillStyle = '#8a1208'; ctx.fillRect(x + w - 8, y + h - 5, 6, 6); ctx.fillStyle = '#c8261e'; ctx.fillRect(x + w - 8, y + h - 5, 5, 5); ctx.fillStyle = '#ff6a5a'; ctx.fillRect(x + w - 7, y + h - 4, 1, 1);
+    ctx.fillStyle = '#3a2410'; ctx.fillText(text, x + 4, y + 3);
+    return;
+  }
+  bezel(ctx, x, y, w, h);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,60,0.10)'; ctx.fillRect(x + 1, y + 1, w - 2, h - 2); ctx.restore();
+  ctx.fillStyle = '#7a4a10'; ctx.fillText(text, x + 5, y + 4); ctx.fillStyle = '#ffb347'; ctx.fillText(text, x + 5, y + 3);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; for (let sy = y + 2; sy < y + h - 1; sy += 2) ctx.fillRect(x + 1, sy, w - 2, 1);
 }

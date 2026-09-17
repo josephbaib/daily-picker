@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=b144995-1824';
-import { mulberry32 } from '../rng.js?v=b144995-1824';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=b144995-1824';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=b144995-1824';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b144995-1824';
+import { drawSprite } from '../sprite.js?v=83b88d3-1828';
+import { mulberry32 } from '../rng.js?v=83b88d3-1828';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=83b88d3-1828';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles, signBoard } from './stage.js?v=83b88d3-1828';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=83b88d3-1828';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -152,7 +152,7 @@ export default {
       if (lastLog && t - lastLog.time < 0.9) titles.show(ctx, w, h, 'ЗАМЕНА!', t, 'gold');
       else if (fired > 0 && t - events[fired - 1].at < 0.9) titles.show(ctx, w, h, 'ПОПАЛ!', t, 'danger');
       if (winner) titles.show(ctx, w, h, 'ВЫСТОЯЛ!', t, 'gold');
-      pixLabel(ctx, `ОСТАЛОСЬ ${alive.length}`, w - 56, 8, '#ffd166', '#ffd166');
+      signBoard(ctx, `ОСТАЛОСЬ ${alive.length}`, w - 14, 10, 'scroll'); /* счёт на свитке с печатью */
       buffer.blit();
       if (t >= finalAt) { stopped = true; onFreeze(); return; }
       raf = nextFrame(frame);

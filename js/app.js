@@ -1,12 +1,12 @@
-import { personFor, preload } from './sprite.js?v=3c6fc00-1756';
-import { computeOrder } from './order.js?v=3c6fc00-1756';
-import { randomSeed } from './rng.js?v=3c6fc00-1756';
-import { GAMES, gameById, pickGame } from './games/index.js?v=3c6fc00-1756';
-import { sound } from './sound.js?v=3c6fc00-1756';
-import { mountTeam, mountGameTiles } from './ui/hub.js?v=3c6fc00-1756';
-import { mountResult } from './ui/result.js?v=3c6fc00-1756';
-import * as db from './db.js?v=3c6fc00-1756';
-import { NPCS, loadImage } from './games/scene.js?v=3c6fc00-1756';
+import { personFor, preload, spriteCanvas } from './sprite.js?v=66513dd-1803';
+import { computeOrder } from './order.js?v=66513dd-1803';
+import { randomSeed } from './rng.js?v=66513dd-1803';
+import { GAMES, gameById, pickGame } from './games/index.js?v=66513dd-1803';
+import { sound } from './sound.js?v=66513dd-1803';
+import { mountTeam, mountGameTiles } from './ui/hub.js?v=66513dd-1803';
+import { mountResult } from './ui/result.js?v=66513dd-1803';
+import * as db from './db.js?v=66513dd-1803';
+import { NPCS, loadImage, plate } from './games/scene.js?v=66513dd-1803';
 
 const $ = (s) => document.querySelector(s);
 const roomId = new URLSearchParams(location.search).get('room');
@@ -93,6 +93,23 @@ async function boot() {
   show('hub');
   const canvas = $('#canvas');
   const overlay = $('#overlay');
+  const startedGames = new Set();
+  const START_LEAD = 4500; // запас от рассылки старта до начала игры: остальные успевают догрузить плиты и увидеть отсчёт
+  const loadGameAssets = (g, onProgress) => { const list = (g && g.assets) || []; let done = 0; if (!list.length && onProgress) onProgress(1); return Promise.all(list.map((a) => loadImage(a).then((im) => { done++; if (onProgress) onProgress(done / list.length); return im; }))); };
+  // Экран загрузки: название игры, команда бежит на месте, полоса заполняется по мере прихода плит.
+  const loadingScreen = (() => {
+    const root = $('#loading'), cv = $('#ld-canvas'), fill = $('#ld-fill'); let timer = 0;
+    return {
+      show(game, people) {
+        $('#ld-title').textContent = game.title; fill.style.width = '0%'; root.hidden = false;
+        const c = cv.getContext('2d'); const shown = people.slice(0, 10); const t0 = performance.now();
+        clearInterval(timer);
+        timer = setInterval(() => { const t = (performance.now() - t0) / 1000; c.clearRect(0, 0, cv.width, cv.height); c.imageSmoothingEnabled = false; shown.forEach((p, i) => { const x = Math.round(cv.width / 2 - (shown.length * 34) / 2 + i * 34 - 15); c.drawImage(spriteCanvas(p.person, 'run' + (Math.floor(t * 10 + i * 3) % 8), 1), x, 4 + Math.round(Math.abs(Math.sin(t * 10 + i)) * -2)); }); }, 1000 / 12);
+      },
+      progress(k) { fill.style.width = Math.round(k * 100) + '%'; },
+      hide() { clearInterval(timer); root.hidden = true; },
+    };
+  })();
   const startBtn = $('#start');
   let room = null, history = [], participants = [], channel = null, running = null, lastPayload = null;
   let state = 'idle';
@@ -117,6 +134,7 @@ async function boot() {
   const tiles = mountGameTiles($('#game-tiles'), [...GAMES, { id: 'random', title: 'Случайная', description: 'Игра выбирается сама, каждый день по-разному.', preview: randomPreview }], {
     onSelect: (id, go, g) => {
       localStorage.setItem('dp:game', id);
+      if (g && g.assets) loadGameAssets(g); // выбранная игра догружается вне очереди
       if (g) $('#game-desc').textContent = g.description || '';
       if (go) start();
     },
@@ -189,36 +207,43 @@ async function boot() {
     const choice = tiles.selected === 'random' ? pickGame(seed) : gameById(tiles.selected);
     const orderIds = computeOrder({ participants: ps, history, seed });
     setState('starting');
+    if (!(choice.assets || []).every((a) => plate(a))) { toast('Загрузка игры…', 1500); await loadGameAssets(choice); }
+    await preload(ps.map((p) => p.person));
     const local = () => {
       history = [{ id: null, order_ids: orderIds }, ...history];
-      runGame({ gameId: null, game: choice.id, seed, orderIds, startAt: Date.now() + 3000 });
+      runGame({ gameId: null, game: choice.id, seed, orderIds, startAt: db.serverNow() + START_LEAD });
     };
     if (!channel) { local(); return; }
     try {
       const row = await db.insertGame({ room_id: roomId, game: choice.id, seed, order_ids: orderIds });
       seenGames.add(row.id);
-      await channel.sendStart({ gameId: row.id, game: choice.id, seed, orderIds, startAt: db.serverNow() + 3000 });
+      await channel.sendStart({ gameId: row.id, game: choice.id, seed, orderIds, startAt: db.serverNow() + START_LEAD });
     } catch (e) { toast('База недоступна, играем локально'); local(); }
   }
 
   async function runGame(payload) {
     if (state !== 'idle' && state !== 'starting') return;
     lastPayload = payload;
-    if (payload.gameId) seenGames.add(payload.gameId);
+    if (payload.gameId) { seenGames.add(payload.gameId); startedGames.add(payload.gameId); }
     const game = gameById(payload.game);
     const ordered = payload.orderIds.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
     if (!game || ordered.length < 1) { setState('idle'); return; }
     const memo = lastFirstName(payload.orderIds);
-    await preload(ordered.map((p) => p.person));
-    if (game.assets) await Promise.all(game.assets.map(loadImage));
-    await fadeTo(() => { show('game'); fit(); });
+    // Порядок строгий: экран загрузки, загрузка персонажей и плит с полосой, и только потом отсчёт и игра.
+    const needLoad = !(game.assets || []).every((a) => plate(a));
+    $('#hud-title').textContent = game.title; $('#hud-time').textContent = '';
+    await fadeTo(() => { show('game'); fit(); if (needLoad) loadingScreen.show(game, ordered); });
     await new Promise((r) => setTimeout(r, 50)); fit();
-    $('#hud-title').textContent = game.title;
     setState('countdown');
+    await preload(ordered.map((p) => p.person));
+    await loadGameAssets(game, (k) => loadingScreen.progress(k));
+    loadingScreen.hide();
     await countdown(payload.startAt, true);
     setState('playing');
     sound.go();
-    const started = performance.now();
+    // Общее время игры привязано к моменту старта из рассылки: кто догрузился позже, попадает в то же место действия, что и остальные.
+    const startAtPerf = performance.now() + (payload.startAt - db.serverNow());
+    const started = Math.min(performance.now(), startAtPerf);
     const timer = setInterval(() => { $('#hud-time').textContent = ((performance.now() - started) / 1000).toFixed(1); }, 100);
     // Страховка: если игра зависла или упала, всё равно показываем итог.
     let frozen = false;
@@ -233,7 +258,7 @@ async function boot() {
         await fadeTo(() => { show('result'); result.show(ordered, memo ? `Вчера первым был(а) ${memo}` : ''); });
     };
     running = game.play({
-      canvas, participants: ordered, order: payload.orderIds, seed: payload.seed,
+      canvas, participants: ordered, order: payload.orderIds, seed: payload.seed, startAt: startAtPerf,
       onEvent: (ev) => { if (ev === 'pop') sound.pop(); if (ev === 'tick') sound.tick(); if (ev === 'ding') sound.ding(); if (ev === 'whoosh') sound.whoosh(); },
       onFreeze: freeze,
     });
@@ -246,7 +271,7 @@ async function boot() {
         const now = useServer ? db.serverNow() : Date.now();
         const left = Math.ceil((untilMs - now) / 1000);
         if (left <= 0) { overlay.hidden = true; resolve(); return; }
-        if (left !== lastShown) { lastShown = left; overlay.textContent = String(left); overlay.hidden = false; sound.tick(); }
+        if (left > 3) { overlay.hidden = true; } else if (left !== lastShown) { lastShown = left; overlay.textContent = String(left); overlay.hidden = false; sound.tick(); }
         setTimeout(tick, 100);
       };
       tick();
@@ -265,7 +290,8 @@ async function boot() {
 
   // ---------- Данные ----------
   preload(NPCS);
-  GAMES.forEach((g) => (g.assets || []).forEach(loadImage)); // плиты сцен грузятся заранее, чтобы старт был одновременным
+  // Плиты сцен грузятся в фоне по одной игре, чтобы не забивать канал: сначала выбранная в меню, потом остальные по очереди.
+  (async () => { const first = gameById(localStorage.getItem('dp:game')); if (first) await loadGameAssets(first); for (const g of GAMES) await loadGameAssets(g); })();
   if (room) applyRoom(room);
   try {
     await db.measureClock();
@@ -278,10 +304,12 @@ async function boot() {
         history = [row, ...history.filter((x) => x.id !== row.id)];
         if (seenGames.has(row.id)) return;
         seenGames.add(row.id);
-        if (state === 'idle') {
+        // Запись об игре иногда приходит раньше рассылки старта. Итог показываем, только если старт так и не пришёл.
+        setTimeout(() => {
+          if (state !== 'idle' || startedGames.has(row.id)) return;
           const ordered = row.order_ids.map((id) => participants.find((p) => p.id === id)).filter(Boolean);
           if (ordered.length) { setState('reveal'); show('result'); result.show(ordered, 'Игра уже прошла, показываю итог'); }
-        }
+        }, 2500);
       },
       onStart: (payload) => runGame(payload),
     });

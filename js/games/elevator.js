@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, threatMark, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, threatMark, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: этажи плитами друг над другом, кабина и двери с плит, шкив и лампа перегруза с листа.
@@ -28,7 +28,7 @@ export default {
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, 'idle', w / 2 - 70 + i * 40, h * 0.4, 1.5));
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const img = (name) => plate(DIR + name + '.png');
@@ -60,7 +60,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const t = warp((now - start) / 1000);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;

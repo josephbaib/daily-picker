@@ -1,5 +1,5 @@
 // Общие куски сцен: дизеринг неба, толпа, прожектор, частицы. Всё считается от времени, а не от кадров.
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
 
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const cache = new Map();
@@ -93,8 +93,8 @@ export function makeParticles() {
 }
 
 // ---------- Статисты и реквизит для детализации сцен ----------
-import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 as seededRnd } from '../rng.js?v=3c6fc00-1756';
+import { personFor, drawSprite as drawPerson, spriteCanvas as personCanvas, SPRITE_W as PW, SPRITE_H as PH } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 as seededRnd } from '../rng.js?v=66513dd-1803';
 
 export const NPC_COUNT = 16;
 export const NPCS = Array.from({ length: NPC_COUNT }, (_, i) => personFor('статист-' + i));
@@ -223,10 +223,10 @@ export function drawPuff(ctx, x, y, age, size = 30) {
 // ---------- Буфер и плиты: схема из docs/BENCHMARK.md ----------
 // Вся сцена рисуется в буфер высотой около 360 пикселей и выводится на экран увеличением без сглаживания,
 // поэтому у спрайтов, фона и надписей одна пиксельная сетка. Фон собирается из нарисованных плит (PNG).
-import { VERSION } from '../version.js?v=3c6fc00-1756';
+import { VERSION } from '../version.js?v=66513dd-1803';
 const IMAGES = new Map(), READY = new Map();
 export function loadImage(path) {
-  if (!IMAGES.has(path)) IMAGES.set(path, new Promise((resolve) => { const img = new Image(); img.onload = () => { READY.set(path, img); resolve(img); }; img.onerror = () => resolve(null); img.src = path + '?v=' + VERSION; }));
+  if (!IMAGES.has(path)) IMAGES.set(path, new Promise((resolve) => { const img = new Image(); img.onload = () => { const done = () => { READY.set(path, img); resolve(img); }; if (img.decode) img.decode().then(done, done); else done(); }; img.onerror = () => resolve(null); img.src = path + '?v=' + VERSION; }));
   return IMAGES.get(path);
 }
 export function plate(path) { return READY.get(path) || null; }

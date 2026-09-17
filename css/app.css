@@ -149,3 +149,12 @@ h2 .sub { text-transform: none; letter-spacing: 0.04em; margin-left: 10px; color
 /* --- затемнение между экранами --- */
 #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .5s ease; z-index: 50; }
 #fade.on { opacity: 1; }
+
+/* Экран загрузки игры: название, бегущая команда, полоса. Игра и отсчёт начинаются только после него. */
+#loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #000; z-index: 5; }
+#loading[hidden] { display: none; }
+.ld-title { font-size: 34px; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; }
+#ld-canvas { width: 720px; max-width: 80vw; height: auto; image-rendering: pixelated; }
+.ld-bar { width: 420px; max-width: 70vw; height: 3px; background: rgba(255,255,255,0.14); }
+.ld-bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.15s linear; }
+.ld-note { font-size: 12px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.55); }

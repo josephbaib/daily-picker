@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite, runFrame } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
@@ -47,7 +47,7 @@ export default {
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, runFrame(t, 10, i), 30 + i * 60, h * 0.45 - Math.abs(Math.sin(t * 3 + i)) * 20, 1.5));
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const n = participants.length;
@@ -70,7 +70,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;                                    // плиты прижаты к низу кадра, лишняя высота уходит в небо

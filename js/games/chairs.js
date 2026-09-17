@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=3c6fc00-1756';
-import { litSprite, placeTags, makeFx, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool } from './scene.js?v=66513dd-1803';
+import { litSprite, placeTags, makeFx, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Гонки на офисных стульях по коридору до переговорки.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: город за панорамными окнами, опенспейс за стеклянным ограждением,
@@ -32,7 +32,7 @@ export default {
     const win = plate(DIR + 'window.png'); if (win) ctx.drawImage(win, 160, 0, 320, 360, 0, 0, w, h);
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const n = participants.length;
@@ -56,7 +56,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;

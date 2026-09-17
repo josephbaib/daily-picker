@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -31,7 +31,7 @@ export default {
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, 'idle', 30 + i * 60, h * 0.45, 1.5));
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const img = (name) => plate(DIR + name + '.png');
@@ -61,7 +61,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const t = warp((now - start) / 1000);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2), yOff = h - 360;

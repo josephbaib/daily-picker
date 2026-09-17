@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, lightPool } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, fxFrame, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, lightPool } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Драка: все на ринге дерутся одновременно. Симуляция идёт фиксированным шагом от сида,
 // поэтому у всех зрителей картинка одинаковая. Кто и когда вылетает, задано порядком заранее.
@@ -31,7 +31,7 @@ export default {
     people.slice(0, 2).forEach((p, i) => drawSprite(ctx, p.person, 'slash' + (Math.floor(t * 8 + i) % 6), w * 0.25 + i * w * 0.3, h * 0.35, 1.5));
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const img = (name) => plate(DIR + name + '.png');
@@ -120,7 +120,7 @@ export default {
     const frame = (now) => {
       if (stopped) return;
       const hit = img('hit'), stars = img('stars');
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const t = warp((now - start) / 1000);
       while (simT + STEP <= t) step(STEP);
       const { w, h } = buffer.fit();

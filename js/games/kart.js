@@ -1,7 +1,7 @@
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=3c6fc00-1756';
-import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=66513dd-1803';
+import { litSprite, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Картинг: два круга по кольцу вокруг офиса Сбера. Вид сбоку, карты с сидящими водителями,
 // четыре зоны за сетчатым забором: парковка, коридор, столовая, серверная. Порядок финиша задан заранее, препятствия только для зрелища.
@@ -51,7 +51,7 @@ export default {
     const road = plate(DIR + 'road.png'); if (road) ctx.drawImage(road, 0, 180, 320, 180, 0, h - 90, 160, 90);
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const n = participants.length;
@@ -72,7 +72,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;

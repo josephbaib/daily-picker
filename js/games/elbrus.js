@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
@@ -39,7 +39,7 @@ export default {
     const s = plate(DIR + 'summit.png'); if (s) ctx.drawImage(s, 160, 0, 320, 360, 0, 0, w, h);
   },
 
-  play({ canvas, participants, order, seed, onFreeze, onEvent }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze, onEvent }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const n = participants.length;
@@ -62,7 +62,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const x0 = Math.round((w - 640) / 2);                     // плиты по центру; на широком окне по бокам зеркальные копии

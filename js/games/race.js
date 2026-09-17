@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=3c6fc00-1756';
-import { mulberry32 } from '../rng.js?v=3c6fc00-1756';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=3c6fc00-1756';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=3c6fc00-1756';
-import { beginCamera, vignette, bigText } from './fx.js?v=3c6fc00-1756';
+import { drawSprite, runFrame } from '../sprite.js?v=66513dd-1803';
+import { mulberry32 } from '../rng.js?v=66513dd-1803';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=66513dd-1803';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=66513dd-1803';
+import { beginCamera, vignette, bigText } from './fx.js?v=66513dd-1803';
 
 // Забег на стадионе на закате: одна дорожка, бегуны в несколько рядов в глубину, камера за лидером.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: небо, город с мачтами, трибуны, дорожка, финишная арка, камеры на переднем плане.
@@ -33,7 +33,7 @@ export default {
     people.slice(0, 3).forEach((p, i) => drawSprite(ctx, p.person, runFrame(t, 10, i), 20 + i * 50, h * 0.4 + i * 10, 1.5));
   },
 
-  play({ canvas, participants, order, seed, onFreeze }) {
+  play({ canvas, participants, order, seed, startAt, onFreeze }) {
     const buffer = makeBuffer(canvas);
     const ctx = buffer.ctx;
     const n = participants.length;
@@ -54,7 +54,7 @@ export default {
 
     const frame = (now) => {
       if (stopped) return;
-      if (start === null) start = now;
+      if (start === null) start = (typeof startAt === 'number' && startAt < now) ? startAt : now;
       const time = (now - start) / 1000, t = Math.min(1, time / dur);
       const { w, h } = buffer.fit();
       const yOff = h - 360;

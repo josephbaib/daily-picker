@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=b6f105c-1726';
-import { mulberry32 } from '../rng.js?v=b6f105c-1726';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=b6f105c-1726';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=b6f105c-1726';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=b6f105c-1726';
+import { drawSprite } from '../sprite.js?v=e3874c0-1738';
+import { mulberry32 } from '../rng.js?v=e3874c0-1738';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=e3874c0-1738';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET } from './stage.js?v=e3874c0-1738';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=e3874c0-1738';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,

@@ -96,3 +96,5 @@
 `assets/scenes/brawl/*.png` — плиты и анимации сцены «Драка», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
 
 `assets/scenes/training/*.png` — плиты и анимации сцены «Полигон», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.
+
+`assets/scenes/horror/*.png` — плиты и анимации сцены «Особняк», сгенерированы Юсуфом по промптам из `docs/prompts.md` (ChatGPT Images), обработаны `tools/pixelize.py`.

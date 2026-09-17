@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=85f63d0-1718';
-import { mulberry32 } from '../rng.js?v=85f63d0-1718';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=85f63d0-1718';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=85f63d0-1718';
-import { beginCamera, vignette, bigText } from './fx.js?v=85f63d0-1718';
+import { drawSprite, runFrame } from '../sprite.js?v=b6f105c-1726';
+import { mulberry32 } from '../rng.js?v=b6f105c-1726';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=b6f105c-1726';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=b6f105c-1726';
+import { beginCamera, vignette, bigText } from './fx.js?v=b6f105c-1726';
 
 // Забег на стадионе на закате: одна дорожка, бегуны в несколько рядов в глубину, камера за лидером.
 // Собрано по схеме docs/BENCHMARK.md и docs/STAGE.md: небо, город с мачтами, трибуны, дорожка, финишная арка, камеры на переднем плане.

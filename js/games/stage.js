@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=85f63d0-1718';
+import { spriteCanvas } from '../sprite.js?v=b6f105c-1726';
 
 const LIT = new WeakMap();
 let work = null;
@@ -91,7 +91,7 @@ export function placeTags(ctx, items) {
 }
 
 // ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
-import { plate } from './scene.js?v=85f63d0-1718';
+import { plate } from './scene.js?v=b6f105c-1726';
 export const FX_ASSET = 'assets/fx/fx.png';
 const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
 const FX_W = 96, FX_H = 48;
@@ -122,4 +122,14 @@ export function makeFx() {
       for (let i = list.length - 1; i >= 0; i--) { const q = list[i], age = time - q.born; if (age < 0) continue; if (age >= q.dur) { list.splice(i, 1); continue; } fxFrame(ctx, q.kind, (age / q.dur) * 6, q.x + q.vx * age - camX, q.y + q.vy * age - camY, q.scale, 1, light); }
     },
   };
+}
+
+// Метка угрозы в пиксельной сетке: уголки рамки вокруг головы и стрелка сверху, мигает. Общая для игр на выбывание.
+export function threatMark(ctx, cx, top, t, color = '#ff5050') {
+  const on = Math.floor(t * 8) % 2 === 0, c = on ? color : 'rgba(255,255,255,0.55)', x = Math.round(cx), y = Math.round(top), r = 15, bob = Math.round(Math.sin(t * 10) * 2);
+  ctx.fillStyle = '#05050f';
+  [[-r - 1, -1, 8, 4], [-r - 1, -1, 4, 8], [r - 6, -1, 8, 4], [r - 2, -1, 4, 8], [-r - 1, 2 * r - 3, 8, 4], [-r - 1, 2 * r - 7, 4, 8], [r - 6, 2 * r - 3, 8, 4], [r - 2, 2 * r - 7, 4, 8]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
+  ctx.fillStyle = c;
+  [[-r, 0, 6, 2], [-r, 0, 2, 6], [r - 5, 0, 6, 2], [r - 1, 0, 2, 6], [-r, 2 * r - 2, 6, 2], [-r, 2 * r - 6, 2, 6], [r - 5, 2 * r - 2, 6, 2], [r - 1, 2 * r - 6, 2, 6]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
+  for (let k = 0; k < 5; k++) { ctx.fillStyle = '#05050f'; ctx.fillRect(x - 5 + k - 1, y - 16 + bob + k - 1, 11 - k * 2 + 2, 3); ctx.fillStyle = c; ctx.fillRect(x - 5 + k, y - 16 + bob + k, 11 - k * 2, 1); }
 }

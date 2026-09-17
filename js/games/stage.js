@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=efefaaa-1351';
+import { spriteCanvas } from '../sprite.js?v=ddff8ed-1653';
 
 const LIT = new WeakMap();
 let work = null;
@@ -88,4 +88,38 @@ export function placeTags(ctx, items) {
   items.forEach((it) => { const w = Math.ceil(ctx.measureText(it.text).width) + 9; const x = Math.round(it.cx - w / 2); let y = it.y, guard = 0;
     while (guard++ < 10 && placed.some((q) => x < q.x + q.w + 1 && x + w + 1 > q.x && y < q.y + 12 && y + 12 > q.y)) y -= 12;
     placed.push({ x, y, w }); nameTag(ctx, it.text, it.cx, y, it.index, it.gold); });
+}
+
+// ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
+import { plate } from './scene.js?v=ddff8ed-1653';
+export const FX_ASSET = 'assets/fx/fx.png';
+const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
+const FX_W = 96, FX_H = 48;
+// Лист эффектов в общем тоне сцены: тот же множитель цвета, что у персонажей. Считается один раз на сцену.
+const TINTED = new Map();
+function fxSheet(light) {
+  const base = plate(FX_ASSET); if (!base || !light) return base;
+  if (TINTED.has(light.id)) return TINTED.get(light.id);
+  const c = document.createElement('canvas'); c.width = base.width; c.height = base.height; const x = c.getContext('2d');
+  x.drawImage(base, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = `rgb(${light.mul})`; x.fillRect(0, 0, c.width, c.height);
+  x.globalCompositeOperation = 'destination-in'; x.drawImage(base, 0, 0);
+  TINTED.set(light.id, c); return c;
+}
+// Один кадр эффекта по центру точки (x, y). Для зацикленных (сюрикен, лист) кадр задаётся снаружи. light — паспорт света сцены; без него эффект светится сам (вспышка, искры).
+export function fxFrame(ctx, kind, frame, x, y, scale = 1, alpha = 1, light = null) {
+  const sheet = fxSheet(light); if (!sheet) return;
+  const f = Math.max(0, Math.min(5, Math.floor(frame)));
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  ctx.drawImage(sheet, f * FX_W, FX_ROWS[kind] * FX_H, FX_W, FX_H, Math.round(x - (FX_W * scale) / 2), Math.round(y - (FX_H * scale) / 2), FX_W * scale, FX_H * scale);
+  if (alpha < 1) ctx.globalAlpha = 1;
+}
+// Разовые эффекты в мировых координатах: знают момент рождения, кадр считается от возраста.
+export function makeFx() {
+  const list = [];
+  return {
+    spawn(kind, x, y, born, { dur = 0.45, scale = 1, vx = 0, vy = 0 } = {}) { list.push({ kind, x, y, born, dur, scale, vx, vy }); },
+    draw(ctx, time, camX = 0, camY = 0, light = null) {
+      for (let i = list.length - 1; i >= 0; i--) { const q = list[i], age = time - q.born; if (age < 0) continue; if (age >= q.dur) { list.splice(i, 1); continue; } fxFrame(ctx, q.kind, (age / q.dur) * 6, q.x + q.vx * age - camX, q.y + q.vy * age - camY, q.scale, 1, light); }
+    },
+  };
 }

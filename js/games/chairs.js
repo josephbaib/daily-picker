@@ -1,7 +1,7 @@
-import { spriteCanvas, SPRITE_W } from '../sprite.js?v=efefaaa-1351';
-import { mulberry32 } from '../rng.js?v=efefaaa-1351';
-import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=efefaaa-1351';
-import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=efefaaa-1351';
+import { spriteCanvas, SPRITE_W } from '../sprite.js?v=ddff8ed-1653';
+import { mulberry32 } from '../rng.js?v=ddff8ed-1653';
+import { label, makeParticles, drawDesk, drawPlant, drawNpc, drawNpcBust, nextFrame, cancelFrame } from './scene.js?v=ddff8ed-1653';
+import { makeWarp, beginCamera, impactRing, drawAmbient, vignette, speedLines, bigText } from './fx.js?v=ddff8ed-1653';
 
 // Гонки на офисных стульях по коридору до переговорки.
 const CARPET = '#3a4a6a', CARPET2 = '#34435f', WALL = '#e8e2d2', WALL2 = '#d8d0bc';

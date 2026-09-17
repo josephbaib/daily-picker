@@ -1,14 +1,14 @@
-import { drawSprite, runFrame } from '../sprite.js?v=efefaaa-1351';
-import { mulberry32 } from '../rng.js?v=efefaaa-1351';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=efefaaa-1351';
-import { drawActor, placeTags } from './stage.js?v=efefaaa-1351';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=efefaaa-1351';
+import { drawSprite, runFrame } from '../sprite.js?v=ddff8ed-1653';
+import { mulberry32 } from '../rng.js?v=ddff8ed-1653';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=ddff8ed-1653';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET } from './stage.js?v=ddff8ed-1653';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=ddff8ed-1653';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.
 // Первая игра по схеме docs/BENCHMARK.md: фон из нарисованных плит в буфере 640×360, код добавляет свет, туман и движение.
 const DIR = 'assets/scenes/rooftops/';
-const ASSETS = ['sky', 'far', 'mid', 'roof', 'fg', 'props', 'tower'].map((n) => DIR + n + '.png');
+const ASSETS = ['sky', 'far', 'mid', 'roof', 'fg', 'props', 'tower'].map((n) => DIR + n + '.png').concat([FX_ASSET]);
 const RIDGE = 205;                       // линия конька на плите крыши
 const GAP = 64;
 const PIECES = {                          // плита крыши разрезана на две: у каждой свой фонарь и трубы
@@ -60,6 +60,7 @@ export default {
       slipAt: rnd() < 0.5 ? 0.25 + rnd() * 0.5 : null, // у половины будет «чуть не сорвался»
     }));
     const particles = makeParticles();
+    const fx = makeFx();
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, lastPuff = 0, flashAt = null;
     const shurikens = Array.from({ length: 6 }, (_, i) => ({ at: 2 + i * 2.1, row: i % rows }));
@@ -135,13 +136,13 @@ export default {
         const age = time - s.at; if (age < 0 || age > 1.2) return;
         if (!fired.has(i)) { fired.add(i); if (onEvent) onEvent('whoosh'); }
         const sx = w + 20 - age * (w + 60) / 1.2, sy = feetY(s.row) - 34, ph = Math.floor(age * 30) % 2;
-        ctx.fillStyle = 'rgba(200,220,255,0.35)'; ctx.fillRect(Math.round(sx) + 6, sy, 26, 1); ctx.fillRect(Math.round(sx) + 10, sy + 2, 16, 1);
-        ctx.fillStyle = '#dfe6f2'; if (ph) { ctx.fillRect(Math.round(sx) - 5, sy - 1, 11, 3); ctx.fillRect(Math.round(sx) - 1, sy - 5, 3, 11); } else { for (let d = -4; d <= 4; d++) { ctx.fillRect(Math.round(sx) + d - 1, sy + d - 1, 2, 2); ctx.fillRect(Math.round(sx) + d - 1, sy - d - 1, 2, 2); } }
-        ctx.fillStyle = '#5a6478'; ctx.fillRect(Math.round(sx), sy, 1, 1);
+        ctx.fillStyle = 'rgba(200,220,255,0.35)'; ctx.fillRect(Math.round(sx) + 8, sy, 28, 1); ctx.fillRect(Math.round(sx) + 12, sy + 2, 16, 1);
+        fxFrame(ctx, 'shuriken', (age * 24) % 6, sx, sy, 1, 1, LIGHT);
       });
 
       // бегуны: контактная тень, пыль из-под ног, подписи в сетке буфера
-      if (time - lastPuff > 0.1 && t < 1) { lastPuff = time; runners.forEach((r, i) => { const x = START_X + ps[i] * L - camX; if (x > -30 && x < w + 30 && !gapAt(START_X + ps[i] * L, 0)) particles.puff(x - 6, feetY(r.row) - 2, time, rnd, 'rgba(150,160,210,0.5)'); }); }
+      if (time - lastPuff > 0.3 && t < 1) { lastPuff = time; runners.forEach((r, i) => { const wx = START_X + ps[i] * L; if (!gapAt(wx, 0)) fx.spawn('dust', wx - 14, feetY(r.row) - 6, time, { dur: 0.36, vx: -40 }); }); }
+      fx.draw(ctx, time, camX, 0, LIGHT);
       particles.draw(ctx, time);
       const labels = [];
       [...runners.keys()].sort((a, b) => runners[a].row - runners[b].row).forEach((i) => {
@@ -150,7 +151,7 @@ export default {
         const fy = feetY(r.row); const g = gapAt(worldX, 14);
         /* прыжок в три фазы: присед перед краем, дуга, приземление с пылью и просадкой */
         let lift = 0, squat = 0;
-        if (g) { const u = (worldX - g.a) / (g.b - g.a); if (u < 0.12) squat = 3; else if (u > 0.9) { squat = 2; if (r.landed !== g.a) { r.landed = g.a; for (let q = 0; q < 4; q++) particles.puff(x + 22 + q * 6, fy - 2, time, rnd, 'rgba(150,160,210,0.6)'); } } else lift = Math.round(Math.sin(((u - 0.12) / 0.78) * Math.PI) * 30); }
+        if (g) { const u = (worldX - g.a) / (g.b - g.a); if (u < 0.12) squat = 3; else if (u > 0.9) { squat = 2; if (r.landed !== g.a) { r.landed = g.a; fx.spawn('ring', worldX, fy - 8, time, { dur: 0.4 }); } } else lift = Math.round(Math.sin(((u - 0.12) / 0.78) * Math.PI) * 30); }
         const slipping = r.slipAt !== null && Math.abs(t - r.slipAt) < 0.035 && !g;
         const duck = shurikens.some((sh) => sh.row === r.row && time - sh.at > 0.2 && time - sh.at < 0.7);
         const first = t >= 1 && r.rank === 0;
@@ -168,7 +169,7 @@ export default {
       // 6. СВЕТ поверх персонажей: фонари на столбах красят крышу и тех, кто пробегает рядом
       TRACK.forEach((pc, i) => { const lx = pc.x + pc.lantern[0] - camX, ly = yOff + pc.lantern[1]; if (lx < -80 || lx > w + 80) return; const f = flick(i); glow(ctx, lx, ly, 58, '255,130,50', 0.42 * f); glow(ctx, lx, ly, 14, '255,220,150', 0.5 * f); lightPool(ctx, lx, yOff + RIDGE + 22, 70, 16, '255,140,60', 0.3 * f); });
       if (towerX < w + 20) { const lx = FINISH_X - 120 + 46 - camX; glow(ctx, lx, yOff + RIDGE - 56, 50, '255,130,50', 0.4 * flick(33)); lightPool(ctx, lx, yOff + RIDGE + 24, 60, 14, '255,140,60', 0.28 * flick(33)); }
-      drawAmbient(ctx, 'leaves', w, h, time, 10, camX);
+      for (let i = 0; i < 5; i++) { const lx = ((i * 131 - camX * 1.2 - time * 26 + Math.sin(time * 1.4 + i) * 18) % (w + 80) + w + 80) % (w + 80) - 40, ly = ((i * 83 + time * 30) % (h + 40)) - 20; fxFrame(ctx, 'leaf', (time * 5 + i * 2) % 6, lx, ly, 1, 0.9, LIGHT); }
       for (let i = 0; i < 10; i++) { const ex = ((i * 131 - camX * 1.1 + Math.sin(time * 1.3 + i) * 12) % (w + 40) + w + 40) % (w + 40) - 20, ey = h - ((i * 53 + time * 22) % (h * 0.6)); ctx.fillStyle = i % 3 ? 'rgba(255,160,60,0.9)' : 'rgba(255,225,130,0.9)'; ctx.fillRect(Math.round(ex), Math.round(ey), 1, 1); }
 
       // 7. ПЕРЕДНИЙ ПЛАН: лента из плиты и её зеркальной копии идёт вдвое быстрее сцены. Крона прижата к верху кадра,

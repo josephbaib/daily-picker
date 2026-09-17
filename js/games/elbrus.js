@@ -1,15 +1,15 @@
-import { drawSprite } from '../sprite.js?v=efefaaa-1351';
-import { mulberry32 } from '../rng.js?v=efefaaa-1351';
-import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=efefaaa-1351';
-import { drawActor, placeTags } from './stage.js?v=efefaaa-1351';
-import { beginCamera, vignette, bigText } from './fx.js?v=efefaaa-1351';
+import { drawSprite } from '../sprite.js?v=ddff8ed-1653';
+import { mulberry32 } from '../rng.js?v=ddff8ed-1653';
+import { makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, placeLabels, pixLabel } from './scene.js?v=ddff8ed-1653';
+import { drawActor, placeTags, makeFx, FX_ASSET } from './stage.js?v=ddff8ed-1653';
+import { beginCamera, vignette, bigText } from './fx.js?v=ddff8ed-1653';
 
 // Эльбрус: восхождение от дороги у Азау до вершины 5642 м. Камера едет вверх по четырём плитам склона,
 // поставленным друг на друга: база, ледник, седловина, вершина. По пути трещина, лавина и буран.
 // Собрано по схеме docs/BENCHMARK.md: фон из плит в буфере 640×360, код добавляет тропу, свет, погоду и движение.
 const DIR = 'assets/scenes/elbrus/';
 const NAMES = ['sky', 'far', 'summit', 'saddle', 'glacier', 'base', 'clouds', 'fg', 'flag', 'eagle', 'aval', 'cabin'];
-const ASSETS = NAMES.map((n) => DIR + n + '.png');
+const ASSETS = NAMES.map((n) => DIR + n + '.png').concat([FX_ASSET]);
 const SECTIONS = ['summit', 'saddle', 'glacier', 'base'];   // сверху вниз, каждая 360 пикселей мира
 const WORLD_H = 1440, START_WY = 1382, END_WY = 100, TOP_PAD = 130; // над вершиной запас неба, чтобы победитель не упирался в край
 const BASE_ALT = 2350, TOP_ALT = 5642;
@@ -52,6 +52,7 @@ export default {
       slipAt: rnd() < 0.5 ? 0.2 + rnd() * 0.5 : null,
     }));
     const particles = makeParticles();
+    const fx = makeFx();
     const beltCv = document.createElement('canvas'); // рабочий холст для поясов облаков
     const dur = this.duration;
     let start = null, raf = 0, stopped = false, flashAt = null, lastPuff = 0;
@@ -134,6 +135,7 @@ export default {
         const slipping = c.slipAt !== null && Math.abs(t - c.slipAt) < 0.035 && !jump;
         const ducked = avalanche >= 0.1 && avalanche < 1.3;
         if (slipping) y += 6; if (ducked) y += 3;
+        if (t < 1 && !jump && time - (c.kick || 0) > 0.5) { c.kick = time; fx.spawn('snow', x + 32, y + 56 + camY, time, { dur: 0.4 }); }
         const leanX = storm ? -2 : 0; /* в буран фигуры клонит ветром */
         const first = t >= 1 && c.rank === 0;
         const hop = first ? Math.round(Math.abs(Math.sin(time * 6)) * 4) : 0;
@@ -146,6 +148,7 @@ export default {
         labels[i] = { text: c.p.name, cx: x + 32 + dirL * (20 + lw / 2), y: y - jump - hop + (dirL ? 26 : 2), index: i, gold: first };
       });
       particles.draw(ctx, time); /* пар и снежная пыль позади фигур: люди идут спиной к камере */
+      fx.draw(ctx, time, 0, camY, LIGHT);
       depth.sort((m, k) => m.fy - k.fy).forEach((m) => m.draw());
       placeTags(ctx, labels.filter(Boolean));
 

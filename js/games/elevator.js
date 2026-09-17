@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=26561fc-1814';
-import { mulberry32 } from '../rng.js?v=26561fc-1814';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=26561fc-1814';
-import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
+import { drawSprite } from '../sprite.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=5271d64-1818';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, pixLabel } from './scene.js?v=5271d64-1818';
+import { drawActor, placeTags, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
 
 // Лифт: все едут наверх, на каждом этаже перегруз и кого-то высаживают. Последний доезжает до переговорки.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: этажи плитами друг над другом, кабина и двери с плит, шкив и лампа перегруза с листа.
@@ -115,7 +115,7 @@ export default {
 
       // 3. КОМАНДА в кабине рядами; выходящий идёт из дверей в комнату этажа
       const inside = participants.filter((p) => !exited.find((e) => e.id === p.id));
-      const labels = [];
+      const labels = [], marks = []; /* знаки угрозы рисуются после подписей, чтобы их не закрывали имена соседей */
       const spanX = 150 - 40, step = cols > 1 ? Math.min(30, spanX / (cols - 1)) : 0, rowStep = rowsN > 1 ? Math.min(30, 84 / (rowsN - 1)) : 0;
       participants.map((p, i) => ({ p, i, row: Math.floor(i / cols) })).sort((a, b) => a.row - b.row).forEach(({ p, i, row }) => {
         const col = i % cols, inRow = Math.min(cols, n - row * cols);
@@ -133,14 +133,15 @@ export default {
         const bob = moving ? Math.round(Math.sin(t * 10 + i) * 0.7) : 0;
         const win = finale && inside.length === 1, hop = win ? Math.round(Math.abs(Math.sin(t * 6)) * 4) : 0;
         drawActor(ctx, p.person, win ? (Math.floor(t * 5) % 2 ? 'cheer' : 'cheer2') : 'idle', bx, by + bob, LIGHT, { lift: hop, shadow: row === rowsN - 1 });
-        if (threat === p.id) threatMark(ctx, bx + 32, by + bob + 12, t);
-        labels.push({ text: p.name, cx: bx + 32, y: by + bob - hop - (threat === p.id ? 12 : 2), index: i, gold: win });
+        if (threat === p.id) marks.push([bx + 32, by + bob + 12, t, '#ff5050', 'alert']);
+        labels.push({ text: p.name, cx: bx + 32, y: by + bob - hop - (threat === p.id ? 30 : 2), index: i, gold: win });
       });
 
       // 4. ДВЕРИ: створки стеклянные, команду видно всю поездку; на остановке разъезжаются в стороны и уходят в раму
       if (doorsImg && doors < 1) { const open = Math.round(doors * 74); ctx.save(); ctx.globalAlpha = 0.32; ctx.beginPath(); ctx.rect(cabX + 24, cabY + 26, 146, 214); ctx.clip(); ctx.drawImage(doorsImg, 24, 26, 73, 214, cabX + 24 - open, cabY + 26, 73, 214); ctx.drawImage(doorsImg, 97, 26, 73, 214, cabX + 97 + open, cabY + 26, 73, 214); ctx.restore(); }
       ctx.restore();
       placeTags(ctx, labels);
+      marks.forEach((mk) => threatMark(ctx, ...mk));
       particles.draw(ctx, t);
       if (finale && doors > 0.9 && Math.floor(t * 6) % 3 === 0) particles.burst(x0 + 320, yOff + 60, t, rnd, { count: 8, speed: 120, colors: ['#21a038', '#ffffff', '#ffd166', '#2fc24f'], life: 1.4, gravity: 120, size: 2 });
       vignette(ctx, w, h, 0.4);

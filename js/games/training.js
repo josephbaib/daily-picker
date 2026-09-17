@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=26561fc-1814';
-import { mulberry32 } from '../rng.js?v=26561fc-1814';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=26561fc-1814';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
+import { drawSprite } from '../sprite.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=5271d64-1818';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, fogBank, pixLabel } from './scene.js?v=5271d64-1818';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
 
 // Полигон: тренировка ниндзя в лесу. Метка цели прыгает между бойцами и замирает, потом
 // прилетают сюрикены, огненный шар или клоны. Часть попаданий срывается: техника замены,
@@ -106,7 +106,7 @@ export default {
       const drawSmoke = (cx, cy, age, dur) => { if (!smoke || age < 0 || age >= dur) return; ctx.drawImage(smoke, Math.min(5, Math.floor((age / dur) * 6)) * SMOKE.w, 0, SMOKE.w, SMOKE.h, Math.round(cx - SMOKE.w / 2), Math.round(cy - SMOKE.h / 2), SMOKE.w, SMOKE.h); };
 
       // 5. БОЙЦЫ по рядам: свет заката, метка угрозы, снаряды с листа, попадания и замены
-      const labels = [];
+      const labels = [], marks = []; /* знаки угрозы рисуются после подписей, чтобы их не закрывали имена соседей */
       [...participants.keys()].sort((a, b) => pos[a].r - pos[b].r).forEach((i) => {
         const p = participants[i], { x, y } = pos[i];
         const lg = logs.find((q) => q.id === p.id), lgAge = lg ? t - lg.time : -1;
@@ -132,10 +132,11 @@ export default {
         const nervous = target === p.id ? Math.round(Math.sin(t * 40 + i) * 1.2) : 0;
         const hop = winner ? Math.round(Math.abs(Math.sin(t * 6)) * 4) : 0;
         drawActor(ctx, p.person, winner ? (Math.floor(t * 5) % 2 ? 'cheer' : 'cheer2') : 'idle', x + nervous, y + bob, LIGHT, { lift: hop });
-        if (target === p.id && !winner) threatMark(ctx, x + 32, y + 12, t, fakePhase ? '#ffd166' : '#ff5050');
-        labels.push({ text: p.name, cx: x + 32, y: y - hop - (target === p.id ? 12 : 2), index: i, gold: winner });
+        if (target === p.id && !winner) marks.push([x + 32, y + 12, t, fakePhase ? '#ffd166' : '#ff5050', 'shuriken']);
+        labels.push({ text: p.name, cx: x + 32, y: y - hop - (target === p.id ? 30 : 2), index: i, gold: winner });
       });
       placeTags(ctx, labels);
+      marks.forEach((mk) => threatMark(ctx, ...mk));
       particles.draw(ctx, t);
       for (let i = 0; i < 5; i++) { const lx = ((i * 131 - t * 22 + Math.sin(t * 1.4 + i) * 18) % (w + 80) + w + 80) % (w + 80) - 40, ly = ((i * 83 + t * 28) % (h + 40)) - 20; fxFrame(ctx, 'leaf', (t * 5 + i * 2) % 6, lx, ly, 1, 0.9, LIGHT); }
       glow(ctx, x0 + 400, yOff + 170, 260, '255,130,60', 0.08);

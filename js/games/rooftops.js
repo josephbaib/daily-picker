@@ -1,8 +1,8 @@
-import { drawSprite, runFrame } from '../sprite.js?v=26561fc-1814';
-import { mulberry32 } from '../rng.js?v=26561fc-1814';
-import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=26561fc-1814';
-import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
-import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=26561fc-1814';
+import { drawSprite, runFrame } from '../sprite.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=5271d64-1818';
+import { skyLayer, makeParticles, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow, lightPool, placeLabels, fogBank } from './scene.js?v=5271d64-1818';
+import { drawActor, placeTags, makeFx, fxFrame, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
+import { beginCamera, drawAmbient, vignette, bigText } from './fx.js?v=5271d64-1818';
 
 // Крыши: ночной пробег ниндзя по крышам деревни до башни Хокаге. Прыжки через провалы,
 // сюрикены из темноты, кто-то чуть не срывается. Кто первым у башни, тот первым говорит.

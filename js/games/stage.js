@@ -1,5 +1,5 @@
 // Второй слой сцены (docs/STAGE.md): персонажи, имена и контакт с поверхностью подчиняются свету и палитре сцены.
-import { spriteCanvas } from '../sprite.js?v=26561fc-1814';
+import { spriteCanvas } from '../sprite.js?v=5271d64-1818';
 
 const LIT = new WeakMap();
 let work = null;
@@ -91,7 +91,7 @@ export function placeTags(ctx, items) {
 }
 
 // ---------- Эффекты с общего листа assets/fx/fx.png: 8 рядов по 6 кадров, ячейка 96×48 ----------
-import { plate } from './scene.js?v=26561fc-1814';
+import { plate } from './scene.js?v=5271d64-1818';
 export const FX_ASSET = 'assets/fx/fx.png';
 const FX_ROWS = { dust: 0, snow: 1, ring: 2, smoke: 3, spark: 4, flash: 5, shuriken: 6, leaf: 7 };
 const FX_W = 96, FX_H = 48;
@@ -124,14 +124,27 @@ export function makeFx() {
   };
 }
 
-// Метка угрозы в пиксельной сетке: уголки рамки вокруг головы и стрелка сверху, мигает. Общая для игр на выбывание.
-export function threatMark(ctx, cx, top, t, color = '#ff5050') {
-  const on = Math.floor(t * 8) % 2 === 0, c = on ? color : 'rgba(255,255,255,0.55)', x = Math.round(cx), y = Math.round(top), r = 15, bob = Math.round(Math.sin(t * 10) * 2);
-  ctx.fillStyle = '#05050f';
-  [[-r - 1, -1, 8, 4], [-r - 1, -1, 4, 8], [r - 6, -1, 8, 4], [r - 2, -1, 4, 8], [-r - 1, 2 * r - 3, 8, 4], [-r - 1, 2 * r - 7, 4, 8], [r - 6, 2 * r - 3, 8, 4], [r - 2, 2 * r - 7, 4, 8]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
-  ctx.fillStyle = c;
-  [[-r, 0, 6, 2], [-r, 0, 2, 6], [r - 5, 0, 6, 2], [r - 1, 0, 2, 6], [-r, 2 * r - 2, 6, 2], [-r, 2 * r - 6, 2, 6], [r - 5, 2 * r - 2, 6, 2], [r - 1, 2 * r - 6, 2, 6]].forEach(([dx, dy, w, h]) => ctx.fillRect(x + dx, y + dy, w, h));
-  for (let k = 0; k < 5; k++) { ctx.fillStyle = '#05050f'; ctx.fillRect(x - 5 + k - 1, y - 16 + bob + k - 1, 11 - k * 2 + 2, 3); ctx.fillStyle = c; ctx.fillRect(x - 5 + k, y - 16 + bob + k, 11 - k * 2, 1); }
+// Знак угрозы: на кого сейчас пал выбор. Никаких рамок и прицелов: под ногами пульсирует пятно света цвета сцены,
+// а над головой висит знак из мира игры. kind: 'shuriken' — крутящийся сюрикен (полигон), 'eyes' — красные глаза из темноты (особняк),
+// 'alert' — красный восклицательный знак перегруза (лифт). top — верх головы, ноги на top + 50.
+export function threatMark(ctx, cx, top, t, color = '#ff5050', kind = 'alert') {
+  const x = Math.round(cx), y = Math.round(top), pulse = 0.5 + 0.5 * Math.sin(t * 12), bob = Math.round(Math.sin(t * 9) * 2);
+  const rgb = color === '#ffd166' ? '255,209,102' : kind === 'eyes' ? '255,30,30' : '255,70,60';
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(x, y + 50); ctx.scale(1, 0.28);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 26); g.addColorStop(0, `rgba(${rgb},${(0.35 + 0.3 * pulse).toFixed(2)})`); g.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = g; ctx.fillRect(-26, -26, 52, 52); ctx.restore();
+  if (kind === 'shuriken') { fxFrame(ctx, 'shuriken', (t * 14) % 6, x, y - 12 + bob, 1); ctx.save(); ctx.globalCompositeOperation = 'lighter'; const h = ctx.createRadialGradient(x, y - 12 + bob, 0, x, y - 12 + bob, 16); h.addColorStop(0, `rgba(${rgb},${(0.3 + 0.25 * pulse).toFixed(2)})`); h.addColorStop(1, `rgba(${rgb},0)`); ctx.fillStyle = h; ctx.fillRect(x - 16, y - 28 + bob, 32, 32); ctx.restore(); return; }
+  if (kind === 'eyes') {
+    const ey = y - 16 + bob, open = Math.sin(t * 3.1) > -0.85;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; const h = ctx.createRadialGradient(x, ey, 0, x, ey, 18); h.addColorStop(0, `rgba(255,20,20,${(0.35 + 0.25 * pulse).toFixed(2)})`); h.addColorStop(1, 'rgba(255,20,20,0)'); ctx.fillStyle = h; ctx.fillRect(x - 18, ey - 18, 36, 36); ctx.restore();
+    ctx.fillStyle = '#0a0006'; ctx.fillRect(x - 9, ey - 3, 18, 7);
+    if (open) { ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 7, ey - 1, 5, 3); ctx.fillRect(x + 2, ey - 1, 5, 3); ctx.fillStyle = '#ffd0c0'; ctx.fillRect(x - 5, ey, 1, 1); ctx.fillRect(x + 4, ey, 1, 1); }
+    else { ctx.fillStyle = '#ff2a2a'; ctx.fillRect(x - 7, ey, 5, 1); ctx.fillRect(x + 2, ey, 5, 1); }
+    return;
+  }
+  const ay = y - 22 + bob; /* восклицательный знак: обводка, два тона */
+  ctx.fillStyle = '#1a0404'; ctx.fillRect(x - 3, ay - 1, 6, 12); ctx.fillRect(x - 3, ay + 12, 6, 6);
+  ctx.fillStyle = color; ctx.fillRect(x - 2, ay, 4, 10); ctx.fillRect(x - 2, ay + 13, 4, 4);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 2, ay, 1, 10); ctx.fillRect(x - 2, ay + 13, 1, 1);
 }
 
 // ---------- Надписи событий в материале сцены ----------

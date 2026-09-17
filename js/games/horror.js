@@ -1,8 +1,8 @@
-import { drawSprite } from '../sprite.js?v=26561fc-1814';
-import { mulberry32 } from '../rng.js?v=26561fc-1814';
-import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=26561fc-1814';
-import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=26561fc-1814';
-import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=26561fc-1814';
+import { drawSprite } from '../sprite.js?v=5271d64-1818';
+import { mulberry32 } from '../rng.js?v=5271d64-1818';
+import { makeParticles, threatTarget, stepRandom, nextFrame, cancelFrame, makeBuffer, plate, drawTiled, glow } from './scene.js?v=5271d64-1818';
+import { drawActor, placeTags, fxFrame, threatMark, FX_ASSET, makeTitles } from './stage.js?v=5271d64-1818';
+import { makeWarp, beginCamera, vignette, bigText } from './fx.js?v=5271d64-1818';
 
 // Особняк: команда заперта в старом доме, каждый раунд кого-то забирает дом. Последний выживший говорит первым.
 // Отрисовка по схеме docs/BENCHMARK.md и docs/STAGE.md: зал и его версия во вспышке молнии плитами, призрак, руки, свеча и чудовище с листа.
@@ -101,7 +101,7 @@ export default {
       participants.forEach((p) => { const d = dead.get(p.id); if (!d || t - d.time < 1.3 || !candle) return; const fr = blackout ? 3 : Math.floor(t * 6 + d.x) % 2; ctx.drawImage(candle, fr * CANDLE.w, 0, CANDLE.w, CANDLE.h, d.x + 32 - CANDLE.w / 2, d.y + 64 - CANDLE.h, CANDLE.w, CANDLE.h); if (!blackout) glow(ctx, d.x + 32, d.y + 40, 18, '255,160,70', 0.4 * flick(d.x)); });
 
       // 3. КОМАНДА по рядам: лунный свет сверху, тёплый от канделябров по краям зала, метка угрозы
-      const labels = [];
+      const labels = [], marks = []; /* знаки угрозы рисуются после подписей, чтобы их не закрывали имена соседей */
       [...participants.keys()].sort((a, b) => pos[a].r - pos[b].r).forEach((i) => {
         const p = participants[i], { x, y } = pos[i];
         const near = Math.min(x + 32 - x0 - 20, x0 + 620 - x - 32), warm = near < 60 ? 3 : near < 110 ? 2 : near < 170 ? 1 : 0, warmSide = x + 32 < x0 + 320 ? -1 : 1;
@@ -134,10 +134,11 @@ export default {
         const bob = Math.round(Math.sin(t * 5 + jitter[i]) * 1);
         const hop = winner ? Math.round(Math.abs(Math.sin(t * 6)) * 4) : 0;
         drawActor(ctx, p.person, winner ? (Math.floor(t * 6) % 2 ? 'cheer' : 'cheer2') : 'idle', x + nervous, y + bob, LIGHT, { warm, warmSide, lift: hop });
-        if (threat === p.id && !winner) threatMark(ctx, x + 32, y + 12, t);
-        labels.push({ text: p.name, cx: x + 32, y: y - hop - (threat === p.id ? 12 : 2), index: i, gold: winner });
+        if (threat === p.id && !winner) marks.push([x + 32, y + 12, t, '#ff5050', 'eyes']);
+        labels.push({ text: p.name, cx: x + 32, y: y - hop - (threat === p.id ? 30 : 2), index: i, gold: winner });
       });
       placeTags(ctx, labels);
+      marks.forEach((mk) => threatMark(ctx, ...mk));
       particles.draw(ctx, t);
       if (winner) { glow(ctx, x0 + 320, yOff + 60, 320, '255,220,160', 0.22); }
       ctx.restore();
